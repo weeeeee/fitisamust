@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fitisamust | The Ultimate eBook</title>
+    <meta name="description" content="Get the ultimate guide and access exclusive member content." />
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="#" class="logo">FIT IS A MUST</a>
+            <button class="mobile-menu-btn" onclick="document.getElementById('nav-links').classList.toggle('active')">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="#ebook">The Book</a></li>
+                <li><a href="#videos">Videos</a></li>
+                <li><a href="#blog">Blog</a></li>
+                <li><a href="#socials">Socials</a></li>
+                <li><a href="#login" class="btn btn-outline btn-sm">Member Login</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section: eBook Promo -->
+    <header id="ebook" class="hero ebook-hero">
+        <div class="container ebook-container">
+            <div class="hero-content">
+                <h1>Unlock the Secrets in <span>The Ultimate Guide</span></h1>
+                <p>Everything you need to know, packed into one comprehensive eBook. Purchase now to unlock exclusive member-only access to community and bonus materials.</p>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                    <a href="#" class="btn btn-primary" id="buy-btn">
+                        <i class="fa-solid fa-cart-shopping"></i> Purchase eBook
+                    </a>
+                    <a href="#login" class="btn btn-outline">
+                        <i class="fa-solid fa-lock"></i> Member Login
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="book-placeholder">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>eBook Cover Image</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Login Section -->
+    <section id="login" class="content-section" style="background: rgba(255,255,255,0.02);">
+        <div class="container">
+            <div class="login-box">
+                <h2>Member Access</h2>
+                <p class="section-subtitle" style="margin-bottom: 30px;">Already purchased the book? Log in below to access your exclusive content.</p>
+                <form id="member-login-form" class="login-form">
+                    <div class="input-group">
+                        <label for="login-email">Email Address</label>
+                        <input type="email" id="login-email" required placeholder="Enter your email" />
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required placeholder="Enter your password" />
+                        <a href="#" id="forgot-password-link" style="display: block; text-align: right; margin-top: 5px; font-size: 0.85rem; color: var(--accent-light);">Forgot Password?</a>
+                    </div>
+                    <div id="login-error" style="color: #ef4444; margin-bottom: 15px; display: none; font-size: 0.9rem;"></div>
+                    <div id="login-success" style="color: #10b981; margin-bottom: 15px; display: none; font-size: 0.9rem;"></div>
+                    <button type="submit" id="submit-login-btn" class="btn btn-primary w-100">Log In</button>
+                    <p style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+                        <i class="fa-solid fa-lock" style="color: var(--accent-light);"></i> End-to-end encrypted & secure login
+                    </p>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- YouTube Videos Section -->
+    <section id="videos" class="content-section">
+        <div class="container">
+            <h2>Latest Videos</h2>
+            <p class="section-subtitle">Watch the latest tutorials and updates directly from YouTube.</p>
+            
+            <div class="grid-3">
+                <!-- Video 1 -->
+                <div class="card video-card">
+                    <div class="video-placeholder">
+                        <i class="fa-brands fa-youtube"></i>
+                    </div>
+                    <div class="card-body">
+                        <h3>Placeholder Video Title 1</h3>
+                        <p>A brief description of what this video covers.</p>
+                        <a href="#" class="btn btn-outline btn-sm">Watch Now</a>
+                    </div>
+                </div>
+
+                <!-- Video 2 -->
+                <div class="card video-card">
+                    <div class="video-placeholder">
+                        <i class="fa-brands fa-youtube"></i>
+                    </div>
+                    <div class="card-body">
+                        <h3>Placeholder Video Title 2</h3>
+                        <p>A brief description of what this video covers.</p>
+                        <a href="#" class="btn btn-outline btn-sm">Watch Now</a>
+                    </div>
+                </div>
+
+                <!-- Video 3 -->
+                <div class="card video-card">
+                    <div class="video-placeholder">
+                        <i class="fa-brands fa-youtube"></i>
+                    </div>
+                    <div class="card-body">
+                        <h3>Placeholder Video Title 3</h3>
+                        <p>A brief description of what this video covers.</p>
+                        <a href="#" class="btn btn-outline btn-sm">Watch Now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Blog Section -->
+    <section id="blog" class="content-section" style="background: rgba(255,255,255,0.02);">
+        <div class="container">
+            <h2>Recent Blog Posts</h2>
+            <p class="section-subtitle">Insights, updates, and deep dives.</p>
+            
+            <div class="grid-3">
+                <!-- Blog 1 -->
+                <div class="card blog-card">
+                    <div class="card-body">
+                        <span class="tag">Update</span>
+                        <h3>Placeholder Blog Title 1</h3>
+                        <p>A short excerpt from the blog post giving readers a taste of the content inside.</p>
+                        <a href="#" class="read-more">Read Post &rarr;</a>
+                    </div>
+                </div>
+
+                <!-- Blog 2 -->
+                <div class="card blog-card">
+                    <div class="card-body">
+                        <span class="tag">Tutorial</span>
+                        <h3>Placeholder Blog Title 2</h3>
+                        <p>A short excerpt from the blog post giving readers a taste of the content inside.</p>
+                        <a href="#" class="read-more">Read Post &rarr;</a>
+                    </div>
+                </div>
+
+                <!-- Blog 3 -->
+                <div class="card blog-card">
+                    <div class="card-body">
+                        <span class="tag">News</span>
+                        <h3>Placeholder Blog Title 3</h3>
+                        <p>A short excerpt from the blog post giving readers a taste of the content inside.</p>
+                        <a href="#" class="read-more">Read Post &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Socials Section -->
+    <section id="socials" class="content-section">
+        <div class="container" style="text-align: center;">
+            <h2>Connect With Us</h2>
+            <p class="section-subtitle">Join the community on your favorite platforms.</p>
+            <div class="social-grid">
+                <a href="#" class="social-btn"><i class="fa-brands fa-x-twitter"></i> Twitter</a>
+                <a href="#" class="social-btn"><i class="fa-brands fa-youtube"></i> YouTube</a>
+                <a href="#" class="social-btn"><i class="fa-brands fa-instagram"></i> Instagram</a>
+                <a href="#" class="social-btn"><i class="fa-brands fa-discord"></i> Discord</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2026 fitisamust.com. All Rights Reserved.</p>
+                <div class="footer-links">
+                    <span style="color: var(--accent-light); font-size: 0.95rem; margin-right: 15px;">
+                        <i class="fa-solid fa-shield-halved"></i> 100% Secure & Encrypted
+                    </span>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Purchase Modal -->
+    <div id="purchase-modal" class="modal">
+        <div class="modal-content login-box">
+            <span class="close-btn">&times;</span>
+            <h2>Complete Your Purchase</h2>
+            <p class="section-subtitle" style="margin-bottom: 20px;">Get full access to The Ultimate Guide for just $29.99.</p>
+            
+            <form id="purchase-form" class="login-form">
+                <div class="input-group">
+                    <label for="purchase-name">Full Name</label>
+                    <input type="text" id="purchase-name" required placeholder="John Doe" />
+                </div>
+                <div class="input-group">
+                    <label for="purchase-email">Email Address</label>
+                    <input type="email" id="purchase-email" required placeholder="john@example.com" />
+                </div>
+                <div class="input-group">
+                    <label for="purchase-card">Card Number (Simulation)</label>
+                    <input type="text" id="purchase-card" required placeholder="XXXX-XXXX-XXXX-XXXX" />
+                </div>
+                <p style="text-align: center; margin-bottom: 20px; font-size: 0.85rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-lock" style="color: var(--accent-light);"></i> Your payment information is 256-bit encrypted and securely processed.
+                </p>
+                
+                <div id="purchase-error" style="color: #ef4444; margin-bottom: 15px; display: none; font-size: 0.9rem;"></div>
+                <div id="purchase-success" style="color: #10b981; margin-bottom: 15px; display: none; font-size: 0.9rem;"></div>
+                
+                <button type="submit" class="btn btn-primary w-100" id="submit-purchase-btn">Buy Now for $29.99</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgot-password-modal" class="modal">
+        <div class="modal-content login-box">
+            <span class="close-forgot-btn" style="float: right; cursor: pointer; font-size: 1.5rem;">&times;</span>
+            <h2>Reset Password</h2>
+            <p class="section-subtitle" style="margin-bottom: 20px;">Enter your email and we will send you a reset link.</p>
+            
+            <form id="forgot-password-form" class="login-form">
+                <div class="input-group">
+                    <label for="forgot-email">Email Address</label>
+                    <input type="email" id="forgot-email" required placeholder="john@example.com" />
+                </div>
+                
+                <div id="forgot-error" style="color: #ef4444; margin-bottom: 15px; display: none; font-size: 0.9rem;"></div>
+                <div id="forgot-success" style="color: #10b981; margin-bottom: 15px; display: none; font-size: 0.9rem;"></div>
+                
+                <button type="submit" class="btn btn-primary w-100" id="submit-forgot-btn">Send Reset Link</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Modal Logic
+        const modal = document.getElementById("purchase-modal");
+        const buyBtn = document.getElementById("buy-btn");
+        const closeBtn = document.querySelector(".close-btn");
+
+        buyBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            modal.style.display = "flex";
+        });
+
+        closeBtn.addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+
+        window.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+
+        // Form Submission Logic
+        const purchaseForm = document.getElementById("purchase-form");
+        const submitBtn = document.getElementById("submit-purchase-btn");
+        const errorMsg = document.getElementById("purchase-error");
+        const successMsg = document.getElementById("purchase-success");
+
+        purchaseForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById("purchase-name").value;
+            const email = document.getElementById("purchase-email").value;
+            const cardNumber = document.getElementById("purchase-card").value;
+            
+            errorMsg.style.display = "none";
+            successMsg.style.display = "none";
+            submitBtn.innerText = "Processing...";
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, cardNumber })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Something went wrong');
+                }
+                
+                successMsg.innerText = "Purchase successful! Welcome, " + name + ".";
+                successMsg.style.display = "block";
+                purchaseForm.reset();
+                
+                // Hide modal after a delay
+                setTimeout(() => {
+                    modal.style.display = "none";
+                    successMsg.style.display = "none";
+                    submitBtn.innerText = "Buy Now for $29.99";
+                    submitBtn.disabled = false;
+                }, 3000);
+                
+            } catch (err) {
+                errorMsg.innerText = err.message;
+                errorMsg.style.display = "block";
+                submitBtn.innerText = "Buy Now for $29.99";
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Forgot Password Logic
+        const forgotModal = document.getElementById("forgot-password-modal");
+        const forgotLink = document.getElementById("forgot-password-link");
+        const closeForgotBtn = document.querySelector(".close-forgot-btn");
+        const forgotForm = document.getElementById("forgot-password-form");
+        const submitForgotBtn = document.getElementById("submit-forgot-btn");
+        const forgotError = document.getElementById("forgot-error");
+        const forgotSuccess = document.getElementById("forgot-success");
+
+        if (forgotLink) {
+            forgotLink.addEventListener("click", (e) => {
+                e.preventDefault();
+                forgotModal.style.display = "flex";
+            });
+        }
+
+        if (closeForgotBtn) {
+            closeForgotBtn.addEventListener("click", () => {
+                forgotModal.style.display = "none";
+            });
+        }
+
+        window.addEventListener("click", (e) => {
+            if (e.target === forgotModal) {
+                forgotModal.style.display = "none";
+            }
+        });
+
+        if (forgotForm) {
+            forgotForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const email = document.getElementById("forgot-email").value;
+                
+                forgotError.style.display = "none";
+                forgotSuccess.style.display = "none";
+                submitForgotBtn.innerText = "Sending...";
+                submitForgotBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/forgot-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Something went wrong');
+                    }
+                    
+                    forgotSuccess.innerText = data.message;
+                    forgotSuccess.style.display = "block";
+                    forgotForm.reset();
+                    
+                } catch (err) {
+                    forgotError.innerText = err.message;
+                    forgotError.style.display = "block";
+                } finally {
+                    submitForgotBtn.innerText = "Send Reset Link";
+                    submitForgotBtn.disabled = false;
+                }
+            });
+        }
+
+        // Member Login Form Logic
+        const memberLoginForm = document.getElementById("member-login-form");
+        const submitLoginBtn = document.getElementById("submit-login-btn");
+        const loginError = document.getElementById("login-error");
+        const loginSuccess = document.getElementById("login-success");
+
+        if (memberLoginForm) {
+            memberLoginForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                
+                const email = document.getElementById("login-email").value;
+                const password = document.getElementById("login-password").value;
+                
+                loginError.style.display = "none";
+                loginSuccess.style.display = "none";
+                submitLoginBtn.innerText = "Authenticating...";
+                submitLoginBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Login failed');
+                    }
+                    
+                    loginSuccess.innerText = data.message;
+                    loginSuccess.style.display = "block";
+                    memberLoginForm.reset();
+                    
+                    // Save user state and redirect to member portal
+                    localStorage.setItem('fitisamust_member', JSON.stringify(data.user));
+                    setTimeout(() => {
+                        window.location.href = 'member.html';
+                    }, 1000);
+                    
+                } catch (err) {
+                    loginError.innerText = err.message;
+                    loginError.style.display = "block";
+                } finally {
+                    submitLoginBtn.innerText = "Log In";
+                    submitLoginBtn.disabled = false;
+                }
+            });
+        }
+    </script>
+</body>
+</html>

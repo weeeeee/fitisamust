@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fitisamust | Member Access</title>
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { padding-top: 100px; }
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 40px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: var(--accent-light);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-row .input-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .macro-summary {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .macro-item {
+            text-align: center;
+        }
+        .macro-item span {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-light);
+        }
+        .macro-item small {
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        th { color: var(--text-muted); font-weight: normal; font-size: 0.85rem; }
+        
+        /* New Chart & Setup UI */
+        .setup-banner {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .setup-banner a {
+            color: #ffa500;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .progress-bar-container {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .progress-item {
+            margin-bottom: 10px;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            color: var(--text-muted);
+        }
+        .progress-bg {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            height: 8px;
+            width: 100%;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container { grid-template-columns: 1fr; margin-top: 40px !important; }
+            .form-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">FIT IS A MUST</a>
+            <button class="mobile-menu-btn" onclick="document.getElementById('nav-links').classList.toggle('active')">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="index.html">Log Out</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="margin-top: 20px;">
+            <h1 id="welcome-message">Welcome to your dashboard</h1>
+            <p class="section-subtitle">Track your goals, log your food, and monitor your weight.</p>
+        </div>
+
+        <div id="setup-banner" class="setup-banner">
+            You haven't set up your macro goals yet! <a href="intake.html">Click here to complete your intake profile.</a>
+        </div>
+
+        <div class="dashboard-container">
+            <!-- Goals Card -->
+            <div class="card">
+                <h3><i class="fa-solid fa-bullseye"></i> Fitness Goal</h3>
+                <div id="current-goal-display" style="margin-bottom: 20px; display: none;">
+                    <p style="font-size: 1.1rem; font-weight: bold;"><span id="g-type" style="color: var(--accent-light)">Weight Loss</span></p>
+                    <p style="color: var(--text-muted)">Progress: <span id="g-current">0</span> / <span id="g-target">100</span></p>
+                </div>
+                <form id="goal-form">
+                    <div class="input-group">
+                        <label>Goal Type</label>
+                        <select id="goal-type" required style="width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-main); border-radius: 6px; outline: none;">
+                            <option value="Weight Loss">Weight Loss (lbs)</option>
+                            <option value="Muscle Gain">Muscle Gain (lbs)</option>
+                            <option value="Workout Days">Workout Days (days/week)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label>Current</label>
+                            <input type="number" id="goal-current" step="0.1" required />
+                        </div>
+                        <div class="input-group">
+                            <label>Target</label>
+                            <input type="number" id="goal-target" step="0.1" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Set Goal</button>
+                </form>
+            </div>
+
+            <!-- Weight Log Card -->
+            <div class="card">
+                <h3><i class="fa-solid fa-scale-balanced"></i> Log Weight</h3>
+                <form id="weight-form">
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label>Weight (lbs)</label>
+                            <input type="number" id="weight-value" step="0.1" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Log Weight</button>
+                </form>
+                
+                <div class="table-responsive">
+                    <table style="margin-top: 30px;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Weight (lbs)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="weight-history">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Food Logger Card (Full Width) -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 20px;">
+                    <h3 style="border: none; margin: 0; padding: 0;"><i class="fa-solid fa-utensils"></i> Food & Macro Tracker (Today)</h3>
+                    <a href="intake.html" style="color: var(--text-muted); font-size: 0.9rem; text-decoration: underline;"><i class="fa-solid fa-gear"></i> Edit Macro Goals</a>
+                </div>
+
+                <div class="chart-container" id="macro-chart-section" style="display: none;">
+                    <div style="width: 250px; height: 250px;">
+                        <canvas id="macroChart"></canvas>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Calories</span>
+                                <span id="prog-cal-text">0 / 0</span>
+                            </div>
+                            <div class="progress-bg"><div class="progress-fill" id="prog-cal-fill" style="background: #4bc0c0;"></div></div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Protein</span>
+                                <span id="prog-pro-text">0g / 0g</span>
+                            </div>
+                            <div class="progress-bg"><div class="progress-fill" id="prog-pro-fill" style="background: #ff6384;"></div></div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Carbs</span>
+                                <span id="prog-carb-text">0g / 0g</span>
+                            </div>
+                            <div class="progress-bg"><div class="progress-fill" id="prog-carb-fill" style="background: #36a2eb;"></div></div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Fat</span>
+                                <span id="prog-fat-text">0g / 0g</span>
+                            </div>
+                            <div class="progress-bg"><div class="progress-fill" id="prog-fat-fill" style="background: #ffce56;"></div></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="macro-summary">
+                    <div class="macro-item">
+                        <span id="tot-cal">0</span>
+                        <small>Calories</small>
+                    </div>
+                    <div class="macro-item">
+                        <span id="tot-pro">0g</span>
+                        <small>Protein</small>
+                    </div>
+                    <div class="macro-item">
+                        <span id="tot-carb">0g</span>
+                        <small>Carbs</small>
+                    </div>
+                    <div class="macro-item">
+                        <span id="tot-fat">0g</span>
+                        <small>Fat</small>
+                    </div>
+                </div>
+
+                <form id="food-form" style="margin-top: 25px;">
+                    <input type="hidden" id="edit-food-id" value="" />
+                    <div class="form-row">
+                        <div class="input-group" style="flex: 1;">
+                            <label>Meal</label>
+                            <select id="food-meal" required style="width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-main); border-radius: 6px; outline: none;">
+                                <option value="Breakfast">Breakfast</option>
+                                <option value="Lunch">Lunch</option>
+                                <option value="Dinner">Dinner</option>
+                                <option value="Snacks">Snacks</option>
+                            </select>
+                        </div>
+                        <div class="input-group" style="flex: 2;">
+                            <label>Food Item</label>
+                            <input type="text" id="food-name" list="food-presets" required placeholder="e.g. Chicken Breast" autocomplete="off" />
+                            <datalist id="food-presets"></datalist>
+                        </div>
+                        <div class="input-group" style="flex: 0.5;">
+                            <label>Qty</label>
+                            <input type="number" id="food-qty" step="0.1" value="1" min="0.1" required />
+                        </div>
+                        <div class="input-group">
+                            <label>Calories</label>
+                            <input type="number" id="food-cal" required />
+                        </div>
+                        <div class="input-group">
+                            <label>Protein (g)</label>
+                            <input type="number" id="food-pro" required />
+                        </div>
+                        <div class="input-group">
+                            <label>Carbs (g)</label>
+                            <input type="number" id="food-carb" required />
+                        </div>
+                        <div class="input-group">
+                            <label>Fat (g)</label>
+                            <input type="number" id="food-fat" required />
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" id="food-submit-btn" class="btn btn-primary">Log Food</button>
+                        <button type="button" id="cancel-edit-btn" class="btn btn-outline" style="display: none;" onclick="cancelEdit()">Cancel Edit</button>
+                    </div>
+                </form>
+
+                <h4 style="margin-top: 30px; color: var(--accent-light); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">Breakfast</h4>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Food Item</th>
+                                <th>Calories</th>
+                                <th>Protein</th>
+                                <th>Carbs</th>
+                                <th>Fat</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="food-history-Breakfast"></tbody>
+                    </table>
+                </div>
+
+                <h4 style="margin-top: 20px; color: var(--accent-light); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">Lunch</h4>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Food Item</th>
+                                <th>Calories</th>
+                                <th>Protein</th>
+                                <th>Carbs</th>
+                                <th>Fat</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="food-history-Lunch"></tbody>
+                    </table>
+                </div>
+
+                <h4 style="margin-top: 20px; color: var(--accent-light); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">Dinner</h4>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Food Item</th>
+                                <th>Calories</th>
+                                <th>Protein</th>
+                                <th>Carbs</th>
+                                <th>Fat</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="food-history-Dinner"></tbody>
+                    </table>
+                </div>
+
+                <h4 style="margin-top: 20px; color: var(--accent-light); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">Snacks</h4>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Food Item</th>
+                                <th>Calories</th>
+                                <th>Protein</th>
+                                <th>Carbs</th>
+                                <th>Fat</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="food-history-Snacks"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="margin-top: 60px;">
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2026 fitisamust.com. All Rights Reserved.</p>
+                <div class="footer-links">
+                    <span style="color: var(--accent-light); font-size: 0.95rem; margin-right: 15px;">
+                        <i class="fa-solid fa-shield-halved"></i> 100% Secure & Encrypted
+                    </span>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="member.js"></script>
+</body>
+</html>

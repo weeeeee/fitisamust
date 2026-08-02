@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fitisamust | Macro Intake</title>
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body { padding-top: 100px; }
+        .intake-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        .intake-container h2 {
+            color: var(--accent-light);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-row .input-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .input-group select, .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            border-radius: 6px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .btn-primary { margin-top: 20px; }
+        @media (max-width: 768px) {
+            .form-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">FIT IS A MUST</a>
+            <button class="mobile-menu-btn" onclick="document.getElementById('nav-links').classList.toggle('active')">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="member.html">Dashboard</a></li>
+                <li><a href="index.html">Log Out</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="intake-container">
+            <h2>Set Your Macro Goals</h2>
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px;">Let's calculate your personalized calories and macros based on your body and activity level.</p>
+            
+            <form id="intake-form">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Gender</label>
+                        <select id="gender" required>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Age (years)</label>
+                        <input type="number" id="age" required min="10" max="120" placeholder="e.g. 30" />
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Height (inches)</label>
+                        <input type="number" id="height" required min="30" max="100" placeholder="e.g. 70" />
+                    </div>
+                    <div class="input-group">
+                        <label>Weight (lbs)</label>
+                        <input type="number" id="weight" required min="50" max="500" placeholder="e.g. 180" />
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label>Activity Level</label>
+                    <select id="activity-level" required>
+                        <option value="Sedentary">Sedentary (Little or no exercise)</option>
+                        <option value="Lightly Active">Lightly Active (Light exercise 1-3 days/week)</option>
+                        <option value="Moderately Active">Moderately Active (Moderate exercise 3-5 days/week)</option>
+                        <option value="Very Active">Very Active (Hard exercise 6-7 days/week)</option>
+                    </select>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label>Primary Goal</label>
+                    <select id="goal" required>
+                        <option value="Fat Loss">Fat Loss (Caloric Deficit)</option>
+                        <option value="Muscle Gain">Muscle Gain (Caloric Surplus)</option>
+                        <option value="Maintain">Maintain Weight</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Calculate & Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="intake.js"></script>
+</body>
+</html>
