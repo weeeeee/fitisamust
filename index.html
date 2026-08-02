@@ -249,6 +249,32 @@
         </div>
     </div>
 
+    <!-- Force Password Modal -->
+    <div id="force-password-modal" class="modal">
+        <div class="modal-content login-box">
+            <h2>Create New Password</h2>
+            <p class="section-subtitle" style="margin-bottom: 20px;">For security, please change your temporary password before accessing the dashboard.</p>
+            
+            <form id="force-password-form" class="login-form">
+                <input type="hidden" id="force-email" />
+                <input type="hidden" id="force-temp-password" />
+
+                <div class="input-group">
+                    <label for="force-new-password">New Password</label>
+                    <input type="password" id="force-new-password" required minlength="6" placeholder="Enter new password" />
+                </div>
+                <div class="input-group">
+                    <label for="force-confirm-password">Confirm Password</label>
+                    <input type="password" id="force-confirm-password" required minlength="6" placeholder="Confirm new password" />
+                </div>
+                
+                <div id="force-error" style="color: #ef4444; margin-bottom: 15px; display: none; font-size: 0.9rem;"></div>
+                
+                <button type="submit" class="btn btn-primary w-100" id="submit-force-btn">Save & Login</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         // Modal Logic
         const modal = document.getElementById("purchase-modal");
@@ -386,6 +412,54 @@
             });
         }
 
+        // Force Password Logic
+        const forceForm = document.getElementById("force-password-form");
+        if (forceForm) {
+            forceForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const email = document.getElementById("force-email").value;
+                const tempPassword = document.getElementById("force-temp-password").value;
+                const newPassword = document.getElementById("force-new-password").value;
+                const confirmPassword = document.getElementById("force-confirm-password").value;
+                const errorEl = document.getElementById("force-error");
+                const btn = document.getElementById("submit-force-btn");
+
+                errorEl.style.display = "none";
+
+                if (newPassword !== confirmPassword) {
+                    errorEl.innerText = "Passwords do not match.";
+                    errorEl.style.display = "block";
+                    return;
+                }
+
+                btn.innerText = "Saving...";
+                btn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/force-password-change', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, tempPassword, newPassword })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to update password');
+                    }
+                    
+                    // Auto login on success
+                    localStorage.setItem('fitisamust_member', JSON.stringify(data.user));
+                    window.location.href = 'member.html';
+                } catch (err) {
+                    errorEl.innerText = err.message;
+                    errorEl.style.display = "block";
+                    btn.innerText = "Save & Login";
+                    btn.disabled = false;
+                }
+            });
+        }
+
         // Member Login Form Logic
         const memberLoginForm = document.getElementById("member-login-form");
         const submitLoginBtn = document.getElementById("submit-login-btn");
@@ -413,6 +487,15 @@
                     
                     const data = await response.json();
                     
+                    if (response.status === 403 && data.requiresPasswordChange) {
+                        // Show force password modal
+                        const forceModal = document.getElementById('force-password-modal');
+                        document.getElementById('force-email').value = data.email;
+                        document.getElementById('force-temp-password').value = data.tempPassword;
+                        forceModal.style.display = 'flex';
+                        return;
+                    }
+
                     if (!response.ok) {
                         throw new Error(data.error || 'Login failed');
                     }

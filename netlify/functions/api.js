@@ -21,24 +21,37 @@ app.use((req, res, next) => {
     next();
 });
 
-// Initialize Nodemailer with Ethereal (Test Account)
+// Initialize Nodemailer with Environment Variables or Ethereal
 let transporter;
-nodemailer.createTestAccount((err, account) => {
-    if (err) {
-        console.error('Failed to create a testing account. ' + err.message);
-        return;
-    }
-    console.log('Ethereal Email account generated successfully.');
+if (process.env.SMTP_HOST) {
     transporter = nodemailer.createTransport({
-        host: account.smtp.host,
-        port: account.smtp.port,
-        secure: account.smtp.secure,
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT || 587,
+        secure: process.env.SMTP_SECURE === 'true',
         auth: {
-            user: account.user,
-            pass: account.pass
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
         }
     });
-});
+    console.log('Real SMTP Email configured.');
+} else {
+    nodemailer.createTestAccount((err, account) => {
+        if (err) {
+            console.error('Failed to create a testing account. ' + err.message);
+            return;
+        }
+        console.log('Ethereal Email account generated successfully.');
+        transporter = nodemailer.createTransport({
+            host: account.smtp.host,
+            port: account.smtp.port,
+            secure: account.smtp.secure,
+            auth: {
+                user: account.user,
+                pass: account.pass
+            }
+        });
+    });
+}
 
 // Initialize SQLite Database (Netlify Serverless workaround)
 const dbPath = path.join('/tmp', 'database.sqlite');
@@ -71,6 +84,12 @@ try {
 try {
     db.exec(`ALTER TABLE members ADD COLUMN reset_token TEXT`);
     db.exec(`ALTER TABLE members ADD COLUMN reset_token_expires DATETIME`);
+} catch (e) {
+    // Ignore
+}
+
+try {
+    db.exec(`ALTER TABLE members ADD COLUMN requires_password_change BOOLEAN DEFAULT 0`);
 } catch (e) {
     // Ignore
 }
@@ -150,14 +169,14 @@ app.post('/api/purchase', (req, res) => {
     const hashedPassword = bcrypt.hashSync(tempPassword, salt);
 
     try {
-        const stmt = db.prepare(`INSERT INTO members (name, email, password) VALUES (?, ?, ?)`);
-        const info = stmt.run(name, email, hashedPassword);
+        const stmt = db.prepare(`INSERT INTO members (name, email, password, requires_password_change) VALUES (?, ?, ?, ?)`);
+        const info = stmt.run(name, email, hashedPassword, 1);
         console.log(`Successfully added member with ID ${info.lastInsertRowid}`);
         
         // Send Email
         if (transporter) {
             const mailOptions = {
-                from: '"BrandName Team" <noreply@brandname.com>',
+                from: process.env.SMTP_FROM_EMAIL || '"BrandName Team" <noreply@brandname.com>',
                 to: email,
                 subject: 'Welcome! Your Member Access Details',
                 text: `Hi ${name},\n\nThank you for purchasing The Ultimate Guide! Your temporary password to access member content is: ${tempPassword}\n\nPlease log in at our website using this password.\n\nCheers,\nBrandName Team`
@@ -208,8 +227,38 @@ app.post('/api/login', (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password.' });
         }
         
+        if (user.requires_password_change) {
+            return res.status(403).json({ requiresPasswordChange: true, email: user.email, tempPassword: password, message: 'Please create a new password.' });
+        }
+        
         console.log(`User ${email} successfully logged in.`);
         res.status(200).json({ message: 'Login successful!', user: { id: user.id, name: user.name, email: user.email } });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// Force Password Change
+app.post('/api/force-password-change', (req, res) => {
+    const { email, tempPassword, newPassword } = req.body;
+    if (!email || !tempPassword || !newPassword) return res.status(400).json({ error: 'All fields are required.' });
+
+    try {
+        const user = db.prepare(`SELECT * FROM members WHERE email = ?`).get(email);
+        if (!user) return res.status(401).json({ error: 'Invalid credentials.' });
+
+        const isMatch = bcrypt.compareSync(tempPassword, user.password || '');
+        if (!isMatch || !user.requires_password_change) {
+            return res.status(401).json({ error: 'Invalid credentials or change not required.' });
+        }
+
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(newPassword, salt);
+
+        db.prepare(`UPDATE members SET password = ?, requires_password_change = 0 WHERE email = ?`).run(hashedPassword, email);
+
+        res.json({ message: 'Password updated successfully!', user: { id: user.id, name: user.name, email: user.email } });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: 'Internal server error.' });
@@ -235,7 +284,7 @@ app.post('/api/forgot-password', (req, res) => {
         if (transporter) {
             const resetUrl = `http://localhost:${PORT}/reset-password.html?token=${token}`;
             const mailOptions = {
-                from: '"BrandName Team" <noreply@brandname.com>',
+                from: process.env.SMTP_FROM_EMAIL || '"BrandName Team" <noreply@brandname.com>',
                 to: email,
                 subject: 'Password Reset Request',
                 text: `You requested a password reset. Click the link below to set a new password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.\n\nCheers,\nBrandName Team`
