@@ -380,7 +380,7 @@ app.get('/api/dashboard/:memberId', (req, res) => {
         const goals = db.prepare('SELECT * FROM goals WHERE member_id = ? ORDER BY created_at DESC LIMIT 1').get(memberId);
         const intake_profile = db.prepare('SELECT * FROM intake_profiles WHERE member_id = ?').get(memberId);
         const food_logs = db.prepare('SELECT * FROM food_logs WHERE member_id = ? AND log_date = DATE(\'now\', \'localtime\')').all(memberId);
-        const weight_logs = db.prepare('SELECT * FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC LIMIT 7').all(memberId);
+        const weight_logs = db.prepare('SELECT * FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC LIMIT 30').all(memberId);
 
         res.json({ member, goals, intake_profile, food_logs, weight_logs });
     } catch (err) {

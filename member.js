@@ -1,4 +1,5 @@
 let macroChartInstance = null;
+let weightChartInstance = null;
 window.currentFoodLogs = [];
 
 window.deleteFood = async function(id) {
@@ -261,7 +262,15 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Campbell's Chicken Noodle Soup (1/2 cup condensed)", cal: 60, pro: 3, carb: 8, fat: 2 },
         { name: "Banza Chickpea Pasta (2 oz)", cal: 190, pro: 11, carb: 35, fat: 3.5 },
 
+        // Fast Food - Generic Burgers
+        { name: "Cheeseburger", cal: 350, pro: 16, carb: 35, fat: 16 },
+        { name: "Hamburger", cal: 300, pro: 13, carb: 33, fat: 12 },
+        { name: "Double Cheeseburger", cal: 450, pro: 25, carb: 34, fat: 24 },
+
         // Fast Food - McDonald's
+        { name: "McDonald's Cheeseburger", cal: 300, pro: 15, carb: 33, fat: 13 },
+        { name: "McDonald's Hamburger", cal: 250, pro: 12, carb: 31, fat: 9 },
+        { name: "McDonald's Double Cheeseburger", cal: 450, pro: 25, carb: 34, fat: 24 },
         { name: "McDonald's Big Mac", cal: 550, pro: 25, carb: 46, fat: 30 },
         { name: "McDonald's McDouble", cal: 400, pro: 22, carb: 33, fat: 20 },
         { name: "McDonald's Quarter Pounder with Cheese", cal: 520, pro: 30, carb: 42, fat: 26 },
@@ -297,7 +306,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Drinks & Coffee
         { name: "Starbucks Grande Vanilla Latte", cal: 250, pro: 12, carb: 37, fat: 6 },
         { name: "Starbucks Grande Mocha", cal: 360, pro: 14, carb: 44, fat: 15 },
-        { name: "Coca Cola (12 oz can)", cal: 140, pro: 0, carb: 39, fat: 0 }
+        { name: "Coca Cola (12 oz can)", cal: 140, pro: 0, carb: 39, fat: 0 },
+
+        // Fast Food - Wendy's Breakfast
+        { name: "Wendy's Breakfast Baconator", cal: 730, pro: 34, carb: 36, fat: 50 },
+        { name: "Wendy's Sausage, Egg & Cheese Biscuit", cal: 600, pro: 21, carb: 35, fat: 42 },
+        { name: "Wendy's Seasoned Potatoes (Small)", cal: 230, pro: 3, carb: 32, fat: 10 },
+        { name: "Wendy's Seasoned Potatoes (Large)", cal: 410, pro: 6, carb: 59, fat: 17 },
+        { name: "Wendy's French Toast Sticks (4 pc)", cal: 330, pro: 6, carb: 33, fat: 17 },
+        { name: "Wendy's French Toast Sticks (6 pc)", cal: 490, pro: 9, carb: 50, fat: 25 }
     ];
 
     // Populate Datalist
@@ -402,16 +419,69 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('g-target').innerText = data.goals.target_value;
             }
 
-            // Populate Weight History
+            // Populate Weight History and Chart
             const weightTbody = document.getElementById('weight-history');
+            const weightChartContainer = document.getElementById('weight-chart-container');
             weightTbody.innerHTML = '';
-            if (data.weight_logs) {
+            
+            if (data.weight_logs && data.weight_logs.length > 0) {
+                weightChartContainer.style.display = 'block';
+                
+                // Populate Table (newest first)
                 data.weight_logs.forEach(log => {
                     weightTbody.innerHTML += `<tr>
                         <td>${log.log_date}</td>
                         <td>${log.weight}</td>
                     </tr>`;
                 });
+
+                // Prepare data for Chart (oldest first for chronological x-axis)
+                const chartLogs = [...data.weight_logs].reverse();
+                const labels = chartLogs.map(log => log.log_date.substring(5)); // Just MM-DD
+                const weights = chartLogs.map(log => log.weight);
+
+                const wCtx = document.getElementById('weightChart').getContext('2d');
+                if (weightChartInstance) weightChartInstance.destroy();
+
+                weightChartInstance = new Chart(wCtx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Weight (lbs)',
+                            data: weights,
+                            borderColor: '#36a2eb',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#36a2eb',
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                suggestedMin: Math.min(...weights) - 5,
+                                suggestedMax: Math.max(...weights) + 5,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                            }
+                        }
+                    }
+                });
+            } else {
+                weightChartContainer.style.display = 'none';
             }
 
             // Populate Food History & Calculate Macros
@@ -510,6 +580,119 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (err) {
             console.error('Failed to load dashboard', err);
+        }
+    }
+
+    // Global Food Search Logic (USDA API)
+    const searchModalBtn = document.getElementById('open-search-modal-btn');
+    const searchModal = document.getElementById('food-search-modal');
+    const closeSearchBtn = document.getElementById('close-search-btn');
+    const globalSearchBtn = document.getElementById('global-search-btn');
+    const globalSearchInput = document.getElementById('global-search-input');
+    const globalSearchResults = document.getElementById('global-search-results');
+    const globalSearchLoading = document.getElementById('global-search-loading');
+    const globalSearchError = document.getElementById('global-search-error');
+
+    if (searchModalBtn && searchModal) {
+        searchModalBtn.addEventListener('click', () => {
+            searchModal.style.display = 'flex';
+            globalSearchInput.focus();
+        });
+
+        closeSearchBtn.addEventListener('click', () => {
+            searchModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === searchModal) {
+                searchModal.style.display = 'none';
+            }
+        });
+
+        globalSearchBtn.addEventListener('click', performGlobalSearch);
+        globalSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performGlobalSearch();
+            }
+        });
+    }
+
+    async function performGlobalSearch() {
+        const query = globalSearchInput.value.trim();
+        if (!query) return;
+
+        globalSearchLoading.style.display = 'block';
+        globalSearchError.style.display = 'none';
+        globalSearchResults.innerHTML = '';
+
+        try {
+            // Using USDA DEMO_KEY. Limited to 30 requests per IP per hour.
+            const response = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=DEMO_KEY&pageSize=15`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch from USDA database. You may have hit the rate limit.');
+            }
+            
+            const data = await response.json();
+            
+            if (!data.foods || data.foods.length === 0) {
+                globalSearchResults.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">No results found.</div>';
+                return;
+            }
+
+            data.foods.forEach(food => {
+                const getNutrient = (id) => {
+                    const nutrient = food.foodNutrients.find(n => n.nutrientId === id || n.nutrientNumber === id?.toString());
+                    return nutrient ? Math.round(nutrient.value) : 0;
+                };
+
+                // USDA Nutrient IDs: Energy (1008), Protein (1003), Fat (1004), Carbs (1005)
+                const cal = getNutrient(1008);
+                const pro = getNutrient(1003);
+                const fat = getNutrient(1004);
+                const carb = getNutrient(1005);
+                
+                let brandStr = food.brandOwner ? `<small style="color: var(--accent-light); display: block;">${food.brandOwner}</small>` : '';
+
+                const itemDiv = document.createElement('div');
+                itemDiv.style.padding = '15px';
+                itemDiv.style.background = 'rgba(255,255,255,0.05)';
+                itemDiv.style.borderRadius = '6px';
+                itemDiv.style.cursor = 'pointer';
+                itemDiv.style.border = '1px solid transparent';
+                itemDiv.style.transition = 'border-color 0.2s';
+                
+                itemDiv.onmouseover = () => itemDiv.style.borderColor = 'var(--accent-main)';
+                itemDiv.onmouseout = () => itemDiv.style.borderColor = 'transparent';
+
+                itemDiv.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 5px;">${food.description}</div>
+                    ${brandStr}
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                        ${cal} Cal | ${pro}g Pro | ${carb}g Carb | ${fat}g Fat
+                    </div>
+                `;
+
+                itemDiv.addEventListener('click', () => {
+                    document.getElementById('food-name').value = food.description;
+                    document.getElementById('food-qty').value = 1;
+                    document.getElementById('food-cal').value = cal;
+                    document.getElementById('food-pro').value = pro;
+                    document.getElementById('food-carb').value = carb;
+                    document.getElementById('food-fat').value = fat;
+                    
+                    searchModal.style.display = 'none';
+                    document.getElementById('food-form').scrollIntoView({ behavior: 'smooth' });
+                });
+
+                globalSearchResults.appendChild(itemDiv);
+            });
+
+        } catch (err) {
+            globalSearchError.innerText = err.message;
+            globalSearchError.style.display = 'block';
+        } finally {
+            globalSearchLoading.style.display = 'none';
         }
     }
 });
