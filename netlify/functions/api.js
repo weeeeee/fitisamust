@@ -455,4 +455,27 @@ app.post('/api/weight', (req, res) => {
     }
 });
 
+app.put('/api/weight/:id', (req, res) => {
+    const { weight } = req.body;
+    try {
+        const stmt = db.prepare('UPDATE weight_logs SET weight = ? WHERE id = ?');
+        stmt.run(weight, req.params.id);
+        res.json({ message: 'Weight updated successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to update weight.' });
+    }
+});
+
+app.delete('/api/weight/:id', (req, res) => {
+    try {
+        const stmt = db.prepare('DELETE FROM weight_logs WHERE id = ?');
+        stmt.run(req.params.id);
+        res.json({ message: 'Weight deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to delete weight.' });
+    }
+});
+
 module.exports.handler = serverless(app);

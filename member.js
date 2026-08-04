@@ -1,6 +1,38 @@
 let macroChartInstance = null;
 let weightChartInstance = null;
 window.currentFoodLogs = [];
+window.currentWeightLogs = [];
+
+window.deleteWeight = async function(id) {
+    if (!confirm('Are you sure you want to delete this weight log?')) return;
+    try {
+        const res = await fetch(`/api/weight/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            window.location.reload();
+        } else {
+            alert('Failed to delete weight log.');
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+window.editWeight = function(id) {
+    const log = window.currentWeightLogs.find(w => w.id === id);
+    if (!log) return;
+    document.getElementById('edit-weight-id').value = log.id;
+    document.getElementById('weight-value').value = log.weight;
+    document.getElementById('weight-submit-btn').innerText = 'Update Weight';
+    document.getElementById('cancel-weight-edit-btn').style.display = 'inline-block';
+    document.getElementById('weight-form').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.cancelWeightEdit = function() {
+    document.getElementById('edit-weight-id').value = '';
+    document.getElementById('weight-submit-btn').innerText = 'Log Weight';
+    document.getElementById('cancel-weight-edit-btn').style.display = 'none';
+    document.getElementById('weight-form').reset();
+};
 
 window.deleteFood = async function(id) {
     if (!confirm('Are you sure you want to delete this food item?')) return;
@@ -397,14 +429,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('weight-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const weight = document.getElementById('weight-value').value;
+        const id = document.getElementById('edit-weight-id').value;
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/weight/${id}` : '/api/weight';
         
-        await fetch('/api/weight', {
-            method: 'POST',
+        await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ memberId: member.id, weight })
         });
+        
+        window.cancelWeightEdit();
         loadDashboard();
-        e.target.reset();
     });
 
     document.getElementById('food-form').addEventListener('submit', async (e) => {
@@ -453,6 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
             weightTbody.innerHTML = '';
             
             if (data.weight_logs && data.weight_logs.length > 0) {
+                window.currentWeightLogs = data.weight_logs;
                 weightChartContainer.style.display = 'block';
                 
                 // Populate Table (newest first)
@@ -460,6 +497,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     weightTbody.innerHTML += `<tr>
                         <td>${log.log_date}</td>
                         <td>${log.weight}</td>
+                        <td style="text-align: right;">
+                            <button onclick="editWeight(${log.id})" style="background: none; border: none; color: #36a2eb; cursor: pointer; font-size: 1.1rem; margin-right: 15px;" title="Edit weight">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteWeight(${log.id})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem;" title="Delete weight">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
                     </tr>`;
                 });
 
