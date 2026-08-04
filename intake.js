@@ -5,6 +5,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    async function loadExistingSettings() {
+        try {
+            const res = await fetch(`/api/dashboard/${member.id}`);
+            const data = await res.json();
+            
+            if (data.intake_profile) {
+                document.getElementById('gender').value = data.intake_profile.gender;
+                document.getElementById('age').value = data.intake_profile.age;
+                document.getElementById('height').value = data.intake_profile.height;
+                document.getElementById('weight').value = data.intake_profile.weight;
+                document.getElementById('activity-level').value = data.intake_profile.activity_level;
+                document.getElementById('goal').value = data.intake_profile.goal;
+            }
+            
+            if (data.goals) {
+                document.getElementById('goal-type').value = data.goals.goal_type;
+                document.getElementById('goal-current').value = data.goals.current_value;
+                document.getElementById('goal-target').value = data.goals.target_value;
+            }
+        } catch (err) {
+            console.error('Failed to load existing settings', err);
+        }
+    }
+    loadExistingSettings();
+
     document.getElementById('intake-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         
