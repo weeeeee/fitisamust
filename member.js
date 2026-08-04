@@ -388,7 +388,17 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Vegetable Lasagna (1 piece)", cal: 320, pro: 15, carb: 40, fat: 12 },
 
         // Meats
-        { name: "Pot Roast (1 slice, 3 oz)", cal: 210, pro: 23, carb: 2, fat: 12 }
+        { name: "Pot Roast (1 slice, 3 oz)", cal: 210, pro: 23, carb: 2, fat: 12 },
+
+        // Fast Food - Arby's
+        { name: "Arby's Classic Roast Beef", cal: 360, pro: 23, carb: 37, fat: 14 },
+        { name: "Arby's Double Roast Beef", cal: 510, pro: 38, carb: 38, fat: 24 },
+        { name: "Arby's Half Pound Roast Beef", cal: 610, pro: 48, carb: 38, fat: 30 },
+        { name: "Arby's Beef 'n Cheddar Classic", cal: 450, pro: 23, carb: 45, fat: 20 },
+        { name: "Arby's Crispy Chicken Sandwich", cal: 540, pro: 23, carb: 58, fat: 25 },
+        { name: "Arby's Curly Fries (Medium)", cal: 550, pro: 6, carb: 65, fat: 29 },
+        { name: "Arby's Mozzarella Sticks (4 ea)", cal: 440, pro: 14, carb: 37, fat: 27 },
+        { name: "Arby's Jamocha Shake (Medium)", cal: 830, pro: 16, carb: 142, fat: 24 }
     ];
 
     // Sort foods alphabetically
