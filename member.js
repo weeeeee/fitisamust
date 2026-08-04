@@ -646,5 +646,85 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Local Food Search Logic
+    const localSearchBtnIcon = document.getElementById('open-local-search-btn');
+    const localSearchModal = document.getElementById('local-food-search-modal');
+    const closeLocalSearchBtn = document.getElementById('close-local-search-btn');
+    const localSearchBtn = document.getElementById('local-search-btn');
+    const localSearchInput = document.getElementById('local-search-input');
+    const localSearchResults = document.getElementById('local-search-results');
+
+    if (localSearchBtnIcon && localSearchModal) {
+        localSearchBtnIcon.addEventListener('click', () => {
+            localSearchModal.style.display = 'flex';
+            localSearchInput.focus();
+            performLocalSearch(); // Show all by default or let them type
+        });
+
+        closeLocalSearchBtn.addEventListener('click', () => {
+            localSearchModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === localSearchModal) {
+                localSearchModal.style.display = 'none';
+            }
+        });
+
+        localSearchBtn.addEventListener('click', performLocalSearch);
+        localSearchInput.addEventListener('input', performLocalSearch); // Search as they type
+    }
+
+    function performLocalSearch() {
+        const query = localSearchInput.value.toLowerCase().trim();
+        localSearchResults.innerHTML = '';
+        
+        let results = prebuiltFoods;
+        if (query) {
+            results = prebuiltFoods.filter(food => food.name.toLowerCase().includes(query));
+        }
+
+        if (results.length === 0) {
+            localSearchResults.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">No matching foods found in the database.</div>';
+            return;
+        }
+
+        // Limit results so DOM doesn't get overwhelmed if there are many
+        const displayResults = results.slice(0, 50);
+
+        displayResults.forEach(food => {
+            const itemDiv = document.createElement('div');
+            itemDiv.style.padding = '15px';
+            itemDiv.style.background = 'rgba(255,255,255,0.05)';
+            itemDiv.style.borderRadius = '6px';
+            itemDiv.style.cursor = 'pointer';
+            itemDiv.style.border = '1px solid transparent';
+            itemDiv.style.transition = 'border-color 0.2s';
+            
+            itemDiv.onmouseover = () => itemDiv.style.borderColor = 'var(--accent-main)';
+            itemDiv.onmouseout = () => itemDiv.style.borderColor = 'transparent';
+
+            itemDiv.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 5px;">${food.name}</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                    ${food.cal} Cal | ${food.pro}g Pro | ${food.carb}g Carb | ${food.fat}g Fat
+                </div>
+            `;
+
+            itemDiv.addEventListener('click', () => {
+                document.getElementById('food-name').value = food.name;
+                document.getElementById('food-qty').value = 1;
+                document.getElementById('food-cal').value = food.cal;
+                document.getElementById('food-pro').value = food.pro;
+                document.getElementById('food-carb').value = food.carb;
+                document.getElementById('food-fat').value = food.fat;
+                
+                localSearchModal.style.display = 'none';
+                document.getElementById('food-form').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            localSearchResults.appendChild(itemDiv);
+        });
+    }
 
 });
