@@ -55,11 +55,17 @@ if (process.env.SMTP_HOST) {
 
 // Initialize SQLite Database (Netlify Serverless workaround)
 const dbPath = path.join('/tmp', 'database.sqlite');
-if (!fs.existsSync(dbPath)) {
+try {
     const bundledDb = path.join(__dirname, '../../database.sqlite');
     if (fs.existsSync(bundledDb)) {
-        fs.copyFileSync(bundledDb, dbPath);
+        const bundledStat = fs.statSync(bundledDb);
+        const tmpStat = fs.existsSync(dbPath) ? fs.statSync(dbPath) : null;
+        if (!tmpStat || bundledStat.mtimeMs > tmpStat.mtimeMs) {
+            fs.copyFileSync(bundledDb, dbPath);
+        }
     }
+} catch (e) {
+    console.error("DB init error", e);
 }
 const db = new Database(dbPath, { verbose: console.log });
 
