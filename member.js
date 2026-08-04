@@ -2,6 +2,7 @@ let macroChartInstance = null;
 let weightChartInstance = null;
 window.currentFoodLogs = [];
 window.currentWeightLogs = [];
+window.lastSelectedMeal = localStorage.getItem('fitisamust_last_meal') || 'Breakfast';
 
 window.deleteWeight = async function(id) {
     if (!confirm('Are you sure you want to delete this weight log?')) return;
@@ -68,7 +69,12 @@ window.cancelEdit = function() {
     document.getElementById('edit-food-id').value = '';
     document.getElementById('food-submit-btn').innerText = 'Log Food';
     document.getElementById('cancel-edit-btn').style.display = 'none';
+    const savedMeal = window.lastSelectedMeal || 'Breakfast';
     document.getElementById('food-form').reset();
+    const mealSelect = document.getElementById('food-meal');
+    if (mealSelect) {
+        mealSelect.value = savedMeal;
+    }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -472,6 +478,16 @@ document.addEventListener('DOMContentLoaded', () => {
         foodQtyInput.addEventListener('input', updateMacros);
     }
 
+    // Preserve & Restore Selected Meal Dropdown State
+    const foodMealSelect = document.getElementById('food-meal');
+    if (foodMealSelect) {
+        foodMealSelect.value = window.lastSelectedMeal;
+        foodMealSelect.addEventListener('change', (e) => {
+            window.lastSelectedMeal = e.target.value;
+            localStorage.setItem('fitisamust_last_meal', window.lastSelectedMeal);
+        });
+    }
+
     // Fetch and populate dashboard data
     loadDashboard();
 
@@ -495,9 +511,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('food-form').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const mealVal = document.getElementById('food-meal').value;
+        window.lastSelectedMeal = mealVal;
+        localStorage.setItem('fitisamust_last_meal', mealVal);
+
         const payload = {
             memberId: member.id,
-            mealType: document.getElementById('food-meal').value,
+            mealType: mealVal,
             foodName: document.getElementById('food-name').value,
             calories: document.getElementById('food-cal').value,
             protein: document.getElementById('food-pro').value,
