@@ -112,6 +112,28 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Onion (1 medium)", cal: 44, pro: 1, carb: 10, fat: 0 },
         { name: "Tomato (1 medium)", cal: 22, pro: 1, carb: 5, fat: 0 },
         
+        // Grocery - Potato Items
+        { name: "Baked Potato (1 medium, with skin)", cal: 161, pro: 4, carb: 37, fat: 0 },
+        { name: "Russet Potato (1 medium cooked)", cal: 168, pro: 4, carb: 38, fat: 0 },
+        { name: "Red Potato (1 medium cooked)", cal: 150, pro: 4, carb: 34, fat: 0 },
+        { name: "Yukon Gold Potato (1 medium cooked)", cal: 135, pro: 3, carb: 30, fat: 0 },
+        { name: "Sweet Potato (1 medium baked)", cal: 103, pro: 2, carb: 24, fat: 0 },
+        { name: "Mashed Potatoes (1 cup, with butter & milk)", cal: 237, pro: 4, carb: 35, fat: 9 },
+        { name: "Mashed Potatoes (1 cup plain)", cal: 170, pro: 4, carb: 37, fat: 1 },
+        { name: "Roasted Potatoes (1 cup oven baked)", cal: 160, pro: 3, carb: 28, fat: 5 },
+        { name: "French Fries (1 medium order / 3 oz)", cal: 340, pro: 4, carb: 44, fat: 16 },
+        { name: "Sweet Potato Fries (3 oz / 1 cup)", cal: 180, pro: 2, carb: 28, fat: 7 },
+        { name: "Hash Browns (1 cup cooked)", cal: 290, pro: 3, carb: 38, fat: 14 },
+        { name: "Potato Wedges (4 oz baked)", cal: 200, pro: 4, carb: 32, fat: 7 },
+        { name: "Potato Salad (1/2 cup)", cal: 180, pro: 3, carb: 18, fat: 11 },
+        { name: "Loaded Baked Potato (with bacon, cheese & sour cream)", cal: 350, pro: 10, carb: 40, fat: 17 },
+        { name: "Potato Tots / Tater Tots (9 pieces / 3 oz)", cal: 160, pro: 2, carb: 20, fat: 9 },
+        { name: "Ore-Ida Tater Tots (3 oz / 9 pieces)", cal: 160, pro: 2, carb: 19, fat: 8 },
+        { name: "Ore-Ida Golden Fries (3 oz / 12 pieces)", cal: 130, pro: 2, carb: 19, fat: 4 },
+        { name: "Ore-Ida Hash Brown Patties (1 patty)", cal: 140, pro: 1, carb: 15, fat: 8 },
+        { name: "Bob Evans Original Mashed Potatoes (1/2 cup)", cal: 150, pro: 2, carb: 18, fat: 8 },
+        { name: "Reser's Main St. Bistro Mashed Potatoes (1/2 cup)", cal: 160, pro: 3, carb: 19, fat: 8 },
+        
         // Grocery - Dairy & Alternatives
         { name: "Whole Milk (1 cup)", cal: 150, pro: 8, carb: 12, fat: 8 },
         { name: "Almond Milk, Unsweetened (1 cup)", cal: 30, pro: 1, carb: 1, fat: 3 },
