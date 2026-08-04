@@ -410,21 +410,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch and populate dashboard data
     loadDashboard();
 
-    // Setup Event Listeners
-    document.getElementById('goal-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const goalType = document.getElementById('goal-type').value;
-        const current = document.getElementById('goal-current').value;
-        const target = document.getElementById('goal-target').value;
-        
-        await fetch('/api/goals', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ memberId: member.id, goalType, currentValue: current, targetValue: target })
-        });
-        loadDashboard();
-        e.target.reset();
-    });
 
     document.getElementById('weight-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -475,12 +460,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`/api/dashboard/${member.id}`);
             const data = await res.json();
             
-            // Populate Goal
-            if (data.goals) {
-                document.getElementById('current-goal-display').style.display = 'block';
-                document.getElementById('g-type').innerText = data.goals.goal_type;
-                document.getElementById('g-current').innerText = data.goals.current_value;
-                document.getElementById('g-target').innerText = data.goals.target_value;
+            // Populate Profile Snapshot
+            if (document.getElementById('profile-name')) {
+                document.getElementById('profile-name').innerText = member.name || member.email || 'Member';
+            }
+            
+            if (data.weight_logs && data.weight_logs.length > 0 && document.getElementById('profile-current-weight')) {
+                document.getElementById('profile-current-weight').innerText = data.weight_logs[0].weight;
+            }
+            
+            if (data.goals && document.getElementById('profile-goal-weight')) {
+                document.getElementById('profile-goal-weight').innerText = data.goals.target_value || '--';
             }
 
             // Populate Weight History and Chart

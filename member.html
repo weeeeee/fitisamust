@@ -158,34 +158,53 @@
         </div>
 
         <div class="dashboard-container">
-            <!-- Goals Card -->
+            <!-- Profile Snapshot Card -->
             <div class="card">
-                <h3><i class="fa-solid fa-bullseye"></i> Fitness Goal</h3>
-                <div id="current-goal-display" style="margin-bottom: 20px; display: none;">
-                    <p style="font-size: 1.1rem; font-weight: bold;"><span id="g-type" style="color: var(--accent-light)">Weight Loss</span></p>
-                    <p style="color: var(--text-muted)">Progress: <span id="g-current">0</span> / <span id="g-target">100</span></p>
+                <h3><i class="fa-solid fa-user"></i> Profile Snapshot</h3>
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <h2 id="profile-name" style="color: var(--text-main); margin-bottom: 5px;">Member Name</h2>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">
+                        Current Weight: <strong id="profile-current-weight" style="color: var(--accent-light);">--</strong> lbs
+                        <span style="margin: 0 10px;">|</span> 
+                        Goal Weight: <strong id="profile-goal-weight" style="color: var(--accent-main);">--</strong> lbs
+                    </p>
                 </div>
-                <form id="goal-form">
-                    <div class="input-group">
-                        <label>Goal Type</label>
-                        <select id="goal-type" required style="width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-main); border-radius: 6px; outline: none;">
-                            <option value="Weight Loss">Weight Loss (lbs)</option>
-                            <option value="Muscle Gain">Muscle Gain (lbs)</option>
-                            <option value="Workout Days">Workout Days (days/week)</option>
-                        </select>
+                
+                <div class="chart-container" id="macro-chart-section" style="display: none; margin-top: 0;">
+                    <div style="width: 250px; height: 250px;">
+                        <canvas id="macroChart"></canvas>
                     </div>
-                    <div class="form-row">
-                        <div class="input-group">
-                            <label>Current</label>
-                            <input type="number" id="goal-current" step="0.1" required />
+                    <div class="progress-bar-container">
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Calories</span>
+                                <span id="prog-cal-text">0 / 0</span>
+                            </div>
+                            <div class="progress-bg"><div class="progress-fill" id="prog-cal-fill" style="background: #4bc0c0;"></div></div>
                         </div>
-                        <div class="input-group">
-                            <label>Target</label>
-                            <input type="number" id="goal-target" step="0.1" required />
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Protein</span>
+                                <span id="prog-pro-text">0g / 0g</span>
+                            </div>
+                            <div class="progress-bg"><div class="progress-fill" id="prog-pro-fill" style="background: #ff6384;"></div></div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Carbs</span>
+                                <span id="prog-carb-text">0g / 0g</span>
+                            </div>
+                            <div class="progress-bg"><div class="progress-fill" id="prog-carb-fill" style="background: #36a2eb;"></div></div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>Fat</span>
+                                <span id="prog-fat-text">0g / 0g</span>
+                            </div>
+                            <div class="progress-bg"><div class="progress-fill" id="prog-fat-fill" style="background: #ffce56;"></div></div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Set Goal</button>
-                </form>
+                </div>
             </div>
 
             <!-- Weight Log Card -->
@@ -232,41 +251,7 @@
                     <a href="intake.html" style="color: var(--text-muted); font-size: 0.9rem; text-decoration: underline;"><i class="fa-solid fa-gear"></i> Edit Macro Goals</a>
                 </div>
 
-                <div class="chart-container" id="macro-chart-section" style="display: none;">
-                    <div style="width: 250px; height: 250px;">
-                        <canvas id="macroChart"></canvas>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-item">
-                            <div class="progress-label">
-                                <span>Calories</span>
-                                <span id="prog-cal-text">0 / 0</span>
-                            </div>
-                            <div class="progress-bg"><div class="progress-fill" id="prog-cal-fill" style="background: #4bc0c0;"></div></div>
-                        </div>
-                        <div class="progress-item">
-                            <div class="progress-label">
-                                <span>Protein</span>
-                                <span id="prog-pro-text">0g / 0g</span>
-                            </div>
-                            <div class="progress-bg"><div class="progress-fill" id="prog-pro-fill" style="background: #ff6384;"></div></div>
-                        </div>
-                        <div class="progress-item">
-                            <div class="progress-label">
-                                <span>Carbs</span>
-                                <span id="prog-carb-text">0g / 0g</span>
-                            </div>
-                            <div class="progress-bg"><div class="progress-fill" id="prog-carb-fill" style="background: #36a2eb;"></div></div>
-                        </div>
-                        <div class="progress-item">
-                            <div class="progress-label">
-                                <span>Fat</span>
-                                <span id="prog-fat-text">0g / 0g</span>
-                            </div>
-                            <div class="progress-bg"><div class="progress-fill" id="prog-fat-fill" style="background: #ffce56;"></div></div>
-                        </div>
-                    </div>
-                </div>
+
                 
                 <div class="macro-summary">
                     <div class="macro-item">

@@ -36,4 +36,29 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('An error occurred.');
         }
     });
+
+    document.getElementById('goal-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const goalType = document.getElementById('goal-type').value;
+        const current = document.getElementById('goal-current').value;
+        const target = document.getElementById('goal-target').value;
+        
+        try {
+            const res = await fetch('/api/goals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId: member.id, goalType, currentValue: current, targetValue: target })
+            });
+            
+            if (res.ok) {
+                alert('Your fitness goal has been updated!');
+                window.location.href = 'member.html';
+            } else {
+                alert('Failed to save fitness goal.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('An error occurred.');
+        }
+    });
 });
