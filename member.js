@@ -374,7 +374,10 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Wendy's Seasoned Potatoes (Small)", cal: 230, pro: 3, carb: 32, fat: 10 },
         { name: "Wendy's Seasoned Potatoes (Large)", cal: 410, pro: 6, carb: 59, fat: 17 },
         { name: "Wendy's French Toast Sticks (4 pc)", cal: 330, pro: 6, carb: 33, fat: 17 },
-        { name: "Wendy's French Toast Sticks (6 pc)", cal: 490, pro: 9, carb: 50, fat: 25 }
+        { name: "Wendy's French Toast Sticks (6 pc)", cal: 490, pro: 9, carb: 50, fat: 25 },
+
+        // Pasta / Italian
+        { name: "Vegetable Lasagna (1 piece)", cal: 320, pro: 15, carb: 40, fat: 12 }
     ];
 
     // Populate Datalist
