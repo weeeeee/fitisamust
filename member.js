@@ -377,7 +377,10 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Wendy's French Toast Sticks (6 pc)", cal: 490, pro: 9, carb: 50, fat: 25 },
 
         // Pasta / Italian
-        { name: "Vegetable Lasagna (1 piece)", cal: 320, pro: 15, carb: 40, fat: 12 }
+        { name: "Vegetable Lasagna (1 piece)", cal: 320, pro: 15, carb: 40, fat: 12 },
+
+        // Meats
+        { name: "Pot Roast (1 slice, 3 oz)", cal: 210, pro: 23, carb: 2, fat: 12 }
     ];
 
     // Populate Datalist
