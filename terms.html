@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fitisamust | Terms of Service</title>
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body { padding-top: 100px; }
+        .terms-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 50px;
+            backdrop-filter: blur(10px);
+        }
+        .terms-container h2 { color: var(--accent-light); margin-top: 30px; margin-bottom: 15px; }
+        .terms-container p { color: var(--text-muted); line-height: 1.6; margin-bottom: 15px; }
+        .terms-container ul { color: var(--text-muted); line-height: 1.6; margin-bottom: 15px; padding-left: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">FIT IS A MUST</a>
+            <button class="mobile-menu-btn" onclick="document.getElementById('nav-links').classList.toggle('active')">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#login" class="btn btn-outline btn-sm">Member Login</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="margin-top: 20px; margin-bottom: 40px; text-align: center;">
+            <h1 id="welcome-message">Terms of Service</h1>
+            <p class="section-subtitle">Last Updated: August 4, 2026</p>
+        </div>
+
+        <div class="terms-container">
+            <h2>1. Acceptance of Terms</h2>
+            <p>By accessing or using the fitisamust platform, including our website, dashboard, and digital products, you agree to comply with and be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
+            
+            <h2>2. User Accounts</h2>
+            <p>Access to the member dashboard requires an account. You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized use of your account.</p>
+
+            <h2>3. Informational Purposes Only</h2>
+            <p>The content provided by fitisamust, including nutritional guidelines, macro calculations, and fitness advice, is for informational and educational purposes only. We are not medical professionals. You should consult with a healthcare provider before starting any new diet or exercise program.</p>
+
+            <h2>4. Intellectual Property</h2>
+            <p>All content on the fitisamust website, including the eBooks, text, graphics, logos, and software, is the property of fitisamust and is protected by intellectual property laws. You may not reproduce, distribute, or create derivative works without our express written permission.</p>
+
+            <h2>5. Limitation of Liability</h2>
+            <p>To the fullest extent permitted by law, fitisamust shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or related to your use of our services.</p>
+
+            <h2>6. Changes to Terms</h2>
+            <p>We reserve the right to modify these terms at any time. We will provide notice of significant changes, but it is your responsibility to review the terms periodically. Continued use of the platform after changes have been made constitutes acceptance of those changes.</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2026 fitisamust.com. All Rights Reserved.</p>
+                <div class="footer-links">
+                    <span style="color: var(--accent-light); font-size: 0.95rem; margin-right: 15px;">
+                        <i class="fa-solid fa-shield-halved"></i> 100% Secure & Encrypted
+                    </span>
+                    <a href="privacy.html">Privacy Policy</a>
+                    <a href="terms.html">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
