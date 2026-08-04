@@ -182,10 +182,10 @@ app.post('/api/purchase', (req, res) => {
         // Send Email
         if (transporter) {
             const mailOptions = {
-                from: process.env.SMTP_FROM_EMAIL || '"BrandName Team" <noreply@brandname.com>',
+                from: process.env.SMTP_FROM_EMAIL || '"FIT IS A MUST Team" <noreply@fitisamust.com>',
                 to: email,
                 subject: 'Welcome! Your Member Access Details',
-                text: `Hi ${name},\n\nThank you for purchasing The Ultimate Guide! Your temporary password to access member content is: ${tempPassword}\n\nPlease log in at our website using this password.\n\nCheers,\nBrandName Team`
+                text: `Hi ${name},\n\nThank you for purchasing The Ultimate Guide! Your temporary password to access member content is: ${tempPassword}\n\nPlease log in at our website using this password.\n\nCheers,\nFIT IS A MUST Team`
             };
 
             transporter.sendMail(mailOptions, (error, info) => {
@@ -290,10 +290,10 @@ app.post('/api/forgot-password', (req, res) => {
         if (transporter) {
             const resetUrl = `http://localhost:${PORT}/reset-password.html?token=${token}`;
             const mailOptions = {
-                from: process.env.SMTP_FROM_EMAIL || '"BrandName Team" <noreply@brandname.com>',
+                from: process.env.SMTP_FROM_EMAIL || '"FIT IS A MUST Team" <noreply@fitisamust.com>',
                 to: email,
                 subject: 'Password Reset Request',
-                text: `You requested a password reset. Click the link below to set a new password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.\n\nCheers,\nBrandName Team`
+                text: `You requested a password reset. Click the link below to set a new password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.\n\nCheers,\nFIT IS A MUST Team`
             };
 
             transporter.sendMail(mailOptions, (error, info) => {
