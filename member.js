@@ -166,6 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Shrimp (4 oz cooked)", cal: 112, pro: 24, carb: 0, fat: 1 },
         { name: "Turkey Breast (4 oz sliced)", cal: 104, pro: 22, carb: 2, fat: 1 },
         
+        // Name Brand Grocery Items - Protein & Breakfast
+        { name: "Seven Days Wildberry Protein Oats (1 container)", cal: 220, pro: 15, carb: 34, fat: 3 },
+
         // Name Brand Grocery Items - Pillsbury Dough
         { name: "Pillsbury Original Crescent Rolls (1 roll)", cal: 100, pro: 2, carb: 11, fat: 6 },
         { name: "Pillsbury Grands! Flaky Layers Original Biscuits (1 biscuit)", cal: 170, pro: 3, carb: 23, fat: 7 },
