@@ -380,9 +380,24 @@ app.get('/api/dashboard/:memberId', (req, res) => {
         const goals = db.prepare('SELECT * FROM goals WHERE member_id = ? ORDER BY created_at DESC LIMIT 1').get(memberId);
         const intake_profile = db.prepare('SELECT * FROM intake_profiles WHERE member_id = ?').get(memberId);
         const food_logs = db.prepare('SELECT * FROM food_logs WHERE member_id = ? AND log_date = DATE(\'now\', \'localtime\')').all(memberId);
-        const weight_logs = db.prepare('SELECT * FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC LIMIT 30').all(memberId);
+        
+        // Fetch historical weight logs
+        const weight_logs = db.prepare('SELECT * FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC').all(memberId);
 
-        res.json({ member, goals, intake_profile, food_logs, weight_logs });
+        // Fetch macro totals
+        const weekly_macros = db.prepare(`
+            SELECT SUM(calories) as cal, SUM(protein) as pro, SUM(carbs) as carb, SUM(fat) as fat 
+            FROM food_logs 
+            WHERE member_id = ? AND log_date >= DATE('now', 'localtime', '-7 days')
+        `).get(memberId) || { cal: 0, pro: 0, carb: 0, fat: 0 };
+
+        const yearly_macros = db.prepare(`
+            SELECT SUM(calories) as cal, SUM(protein) as pro, SUM(carbs) as carb, SUM(fat) as fat 
+            FROM food_logs 
+            WHERE member_id = ?
+        `).get(memberId) || { cal: 0, pro: 0, carb: 0, fat: 0 };
+
+        res.json({ member, goals, intake_profile, food_logs, weight_logs, weekly_macros, yearly_macros });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: 'Failed to fetch dashboard data.' });

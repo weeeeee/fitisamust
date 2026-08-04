@@ -206,6 +206,49 @@
                         </div>
                     </div>
                 </div>
+
+                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
+                <!-- Weight Progress Stats -->
+                <h4 style="color: var(--text-main); margin-bottom: 15px; font-size: 1.1rem;"><i class="fa-solid fa-weight-scale"></i> Weight Progress</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 30px;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">This Week</div>
+                        <div id="stat-weight-week" style="font-size: 1.2rem; font-weight: bold; color: var(--text-main);">--</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">This Month</div>
+                        <div id="stat-weight-month" style="font-size: 1.2rem; font-weight: bold; color: var(--text-main);">--</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">All Time</div>
+                        <div id="stat-weight-year" style="font-size: 1.2rem; font-weight: bold; color: var(--accent-main);">--</div>
+                    </div>
+                </div>
+
+                <!-- Macro Totals -->
+                <h4 style="color: var(--text-main); margin-bottom: 15px; font-size: 1.1rem;"><i class="fa-solid fa-chart-pie"></i> Macro Totals</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 10px; color: var(--accent-light);">Past 7 Days</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                            Cal: <span id="stat-week-cal" style="color: #fff">--</span><br>
+                            Pro: <span id="stat-week-pro" style="color: #fff">--</span><br>
+                            Carb: <span id="stat-week-carb" style="color: #fff">--</span><br>
+                            Fat: <span id="stat-week-fat" style="color: #fff">--</span>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 10px; color: var(--accent-main);">All Time</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                            Cal: <span id="stat-year-cal" style="color: #fff">--</span><br>
+                            Pro: <span id="stat-year-pro" style="color: #fff">--</span><br>
+                            Carb: <span id="stat-year-carb" style="color: #fff">--</span><br>
+                            Fat: <span id="stat-year-fat" style="color: #fff">--</span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Weight Log Card -->

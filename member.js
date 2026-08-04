@@ -493,11 +493,73 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (data.weight_logs && data.weight_logs.length > 0 && document.getElementById('profile-current-weight')) {
-                document.getElementById('profile-current-weight').innerText = data.weight_logs[0].weight;
+                const currentWeight = data.weight_logs[0].weight;
+                document.getElementById('profile-current-weight').innerText = currentWeight;
+
+                // Calculate historical weight loss
+                const getWeightDiff = (daysAgo) => {
+                    const targetDate = new Date();
+                    targetDate.setDate(targetDate.getDate() - daysAgo);
+                    
+                    let closestLog = null;
+                    let smallestDiff = Infinity;
+                    
+                    for (const log of data.weight_logs) {
+                        const logDate = new Date(log.log_date);
+                        // Add timezone offset so local dates don't get shifted to previous day
+                        logDate.setMinutes(logDate.getMinutes() + logDate.getTimezoneOffset());
+                        
+                        const diff = Math.abs(targetDate - logDate);
+                        if (diff < smallestDiff && diff <= (7 * 24 * 60 * 60 * 1000)) { 
+                            smallestDiff = diff;
+                            closestLog = log;
+                        }
+                    }
+                    
+                    if (closestLog) {
+                        const lost = closestLog.weight - currentWeight;
+                        if (lost > 0) return `-${lost.toFixed(1)} lbs`;
+                        if (lost < 0) return `+${Math.abs(lost).toFixed(1)} lbs`;
+                        return '0.0 lbs';
+                    }
+                    return '--';
+                };
+
+                if (document.getElementById('stat-weight-week')) {
+                    document.getElementById('stat-weight-week').innerText = getWeightDiff(7);
+                    document.getElementById('stat-weight-month').innerText = getWeightDiff(30);
+                }
+
+                if (data.intake_profile && data.intake_profile.weight && document.getElementById('stat-weight-year')) {
+                    const startWeight = data.intake_profile.weight;
+                    const lost = startWeight - currentWeight;
+                    if (lost > 0) {
+                        document.getElementById('stat-weight-year').innerText = `-${lost.toFixed(1)} lbs`;
+                    } else if (lost < 0) {
+                        document.getElementById('stat-weight-year').innerText = `+${Math.abs(lost).toFixed(1)} lbs`;
+                    } else {
+                        document.getElementById('stat-weight-year').innerText = `0.0 lbs`;
+                    }
+                }
             }
             
             if (data.goals && document.getElementById('profile-goal-weight')) {
                 document.getElementById('profile-goal-weight').innerText = data.goals.target_value || '--';
+            }
+
+            // Populate Macro Totals
+            if (data.weekly_macros && document.getElementById('stat-week-cal')) {
+                document.getElementById('stat-week-cal').innerText = data.weekly_macros.cal || 0;
+                document.getElementById('stat-week-pro').innerText = (data.weekly_macros.pro || 0) + 'g';
+                document.getElementById('stat-week-carb').innerText = (data.weekly_macros.carb || 0) + 'g';
+                document.getElementById('stat-week-fat').innerText = (data.weekly_macros.fat || 0) + 'g';
+            }
+
+            if (data.yearly_macros && document.getElementById('stat-year-cal')) {
+                document.getElementById('stat-year-cal').innerText = data.yearly_macros.cal || 0;
+                document.getElementById('stat-year-pro').innerText = (data.yearly_macros.pro || 0) + 'g';
+                document.getElementById('stat-year-carb').innerText = (data.yearly_macros.carb || 0) + 'g';
+                document.getElementById('stat-year-fat').innerText = (data.yearly_macros.fat || 0) + 'g';
             }
 
             // Populate Weight History and Chart
