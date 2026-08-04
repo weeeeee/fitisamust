@@ -376,6 +376,14 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Wendy's French Toast Sticks (4 pc)", cal: 330, pro: 6, carb: 33, fat: 17 },
         { name: "Wendy's French Toast Sticks (6 pc)", cal: 490, pro: 9, carb: 50, fat: 25 },
 
+        // Fast Food - Chipotle
+        { name: "Chipotle Chicken Bowl (Standard)", cal: 650, pro: 40, carb: 65, fat: 22 },
+        { name: "Chipotle Steak Burrito (Standard)", cal: 1050, pro: 45, carb: 110, fat: 43 },
+        { name: "Chipotle Carnitas Tacos (3 pc)", cal: 560, pro: 32, carb: 45, fat: 26 },
+        { name: "Chipotle Barbacoa Bowl (Standard)", cal: 730, pro: 35, carb: 65, fat: 35 },
+        { name: "Chipotle Chicken Salad (with Vinaigrette)", cal: 460, pro: 35, carb: 23, fat: 27 },
+        { name: "Chipotle Chips & Guacamole", cal: 770, pro: 10, carb: 81, fat: 41 },
+
         // Pasta / Italian
         { name: "Vegetable Lasagna (1 piece)", cal: 320, pro: 15, carb: 40, fat: 12 },
 
