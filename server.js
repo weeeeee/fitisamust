@@ -431,9 +431,9 @@ app.post('/api/goals', (req, res) => {
 app.post('/api/food', (req, res) => {
     const { memberId, foodName, calories, protein, carbs, fat, mealType } = req.body;
     try {
-        const stmt = db.prepare('INSERT INTO food_logs (member_id, food_name, calories, protein, carbs, fat, meal_type) VALUES (?, ?, ?, ?, ?, ?, ?)');
-        stmt.run(memberId, foodName, calories, protein, carbs, fat, mealType || 'Breakfast');
-        res.json({ message: 'Food logged successfully' });
+        const stmt = db.prepare("INSERT INTO food_logs (member_id, food_name, calories, protein, carbs, fat, meal_type, log_date) VALUES (?, ?, ?, ?, ?, ?, ?, DATE('now', 'localtime'))");
+        const result = stmt.run(memberId, foodName, calories, protein, carbs, fat, mealType || 'Breakfast');
+        res.json({ message: 'Food logged successfully', id: result.lastInsertRowid });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: 'Failed to log food.' });

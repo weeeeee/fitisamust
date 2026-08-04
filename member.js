@@ -37,16 +37,21 @@ window.cancelWeightEdit = function() {
 
 window.deleteFood = async function(id) {
     if (!confirm('Are you sure you want to delete this food item?')) return;
+    if (window.currentMemberId) {
+        try {
+            const key = `fitisamust_food_logs_${window.currentMemberId}_` + (new Date().toISOString().split('T')[0]);
+            let logs = JSON.parse(localStorage.getItem(key) || '[]');
+            logs = logs.filter(item => item.id != id);
+            localStorage.setItem(key, JSON.stringify(logs));
+        } catch(e) {}
+    }
     try {
-        const res = await fetch(`/api/food/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-            window.location.reload();
-        } else {
-            alert('Failed to delete food.');
-        }
+        await fetch(`/api/food/${id}`, { method: 'DELETE' });
     } catch (err) {
         console.error(err);
     }
+    if (window.triggerDashboardReload) window.triggerDashboardReload();
+    else window.location.reload();
 };
 
 window.editFood = function(id) {
@@ -515,25 +520,55 @@ document.addEventListener('DOMContentLoaded', () => {
         window.lastSelectedMeal = mealVal;
         localStorage.setItem('fitisamust_last_meal', mealVal);
 
-        const payload = {
-            memberId: member.id,
-            mealType: mealVal,
-            foodName: document.getElementById('food-name').value,
-            calories: document.getElementById('food-cal').value,
-            protein: document.getElementById('food-pro').value,
-            carbs: document.getElementById('food-carb').value,
-            fat: document.getElementById('food-fat').value,
+        const foodObj = {
+            id: document.getElementById('edit-food-id').value || Date.now(),
+            member_id: member.id,
+            meal_type: mealVal,
+            food_name: document.getElementById('food-name').value,
+            calories: parseInt(document.getElementById('food-cal').value, 10) || 0,
+            protein: parseInt(document.getElementById('food-pro').value, 10) || 0,
+            carbs: parseInt(document.getElementById('food-carb').value, 10) || 0,
+            fat: parseInt(document.getElementById('food-fat').value, 10) || 0
         };
-        
+
         const id = document.getElementById('edit-food-id').value;
         const method = id ? 'PUT' : 'POST';
         const url = id ? `/api/food/${id}` : '/api/food';
         
-        await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    memberId: member.id,
+                    mealType: mealVal,
+                    foodName: foodObj.food_name,
+                    calories: foodObj.calories,
+                    protein: foodObj.protein,
+                    carbs: foodObj.carbs,
+                    fat: foodObj.fat
+                })
+            });
+            if (res.ok) {
+                const resData = await res.json();
+                if (resData.id) foodObj.id = resData.id;
+            }
+        } catch (err) {
+            console.error('API Sync:', err);
+        }
+
+        // Cache in LocalStorage
+        try {
+            const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
+            const key = `fitisamust_food_logs_${member.id}_${todayStr}`;
+            let logs = JSON.parse(localStorage.getItem(key) || '[]');
+            if (id) {
+                logs = logs.map(item => item.id == foodObj.id ? { ...item, ...foodObj } : item);
+            } else {
+                logs.push(foodObj);
+            }
+            localStorage.setItem(key, JSON.stringify(logs));
+        } catch(e) {}
         
         cancelEdit();
         loadDashboard();
@@ -695,6 +730,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Populate Food History & Calculate Macros
+            window.currentMemberId = member.id;
+            window.triggerDashboardReload = loadDashboard;
+
             const tbodies = {
                 'Breakfast': document.getElementById('food-history-Breakfast'),
                 'Lunch': document.getElementById('food-history-Lunch'),
@@ -705,13 +743,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let tCal = 0, tPro = 0, tCarb = 0, tFat = 0;
             
-            if (data.food_logs) {
-                window.currentFoodLogs = data.food_logs;
-                data.food_logs.forEach(log => {
-                    tCal += log.calories;
-                    tPro += log.protein;
-                    tCarb += log.carbs;
-                    tFat += log.fat;
+            // Retrieve Local Cache
+            const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
+            const localKey = `fitisamust_food_logs_${member.id}_${todayStr}`;
+            let localCachedLogs = [];
+            try { localCachedLogs = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
+
+            let activeLogs = data.food_logs || [];
+            if (activeLogs.length > 0) {
+                try { localStorage.setItem(localKey, JSON.stringify(activeLogs)); } catch(e) {}
+            } else if (localCachedLogs.length > 0) {
+                activeLogs = localCachedLogs;
+            }
+
+            if (activeLogs) {
+                window.currentFoodLogs = activeLogs;
+                activeLogs.forEach(log => {
+                    tCal += Number(log.calories) || 0;
+                    tPro += Number(log.protein) || 0;
+                    tCarb += Number(log.carbs) || 0;
+                    tFat += Number(log.fat) || 0;
                     
                     const mealType = log.meal_type || 'Breakfast';
                     const tb = tbodies[mealType];
