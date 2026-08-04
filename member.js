@@ -702,22 +702,54 @@ document.addEventListener('DOMContentLoaded', () => {
         localSearchInput.addEventListener('input', performLocalSearch); // Search as they type
     }
 
-    function performLocalSearch() {
+    async function performLocalSearch() {
         const query = localSearchInput.value.toLowerCase().trim();
-        localSearchResults.innerHTML = '';
+        localSearchResults.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Searching...</div>';
         
-        let results = prebuiltFoods;
+        let localResults = prebuiltFoods;
         if (query) {
-            results = prebuiltFoods.filter(food => food.name.toLowerCase().includes(query));
+            localResults = prebuiltFoods.filter(food => food.name.toLowerCase().includes(query));
         }
 
-        if (results.length === 0) {
+        let dbResults = [];
+        if (query && query.length >= 2) {
+            try {
+                const response = await fetch(`/api/food/search?q=${encodeURIComponent(query)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    dbResults = data.map(item => ({
+                        name: item.name,
+                        cal: item.calories,
+                        pro: item.protein,
+                        carb: item.carbs,
+                        fat: item.fat
+                    }));
+                }
+            } catch (err) {
+                console.error("Failed to search database", err);
+            }
+        }
+
+        // Combine and remove duplicates
+        const combinedResults = [...localResults, ...dbResults];
+        const uniqueResults = [];
+        const seenNames = new Set();
+        for (const food of combinedResults) {
+            if (!seenNames.has(food.name.toLowerCase())) {
+                seenNames.add(food.name.toLowerCase());
+                uniqueResults.push(food);
+            }
+        }
+
+        if (uniqueResults.length === 0) {
             localSearchResults.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">No matching foods found in the database.</div>';
             return;
         }
 
+        localSearchResults.innerHTML = '';
+
         // Limit results so DOM doesn't get overwhelmed if there are many
-        const displayResults = results.slice(0, 50);
+        const displayResults = uniqueResults.slice(0, 50);
 
         displayResults.forEach(food => {
             const itemDiv = document.createElement('div');

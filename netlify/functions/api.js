@@ -389,6 +389,20 @@ app.get('/api/dashboard/:memberId', (req, res) => {
     }
 });
 
+// Search Global Foods
+app.get('/api/food/search', (req, res) => {
+    const query = req.query.q;
+    if (!query) return res.json([]);
+    try {
+        const stmt = db.prepare(`SELECT * FROM global_foods WHERE name LIKE ? LIMIT 50`);
+        const foods = stmt.all(`%${query}%`);
+        res.json(foods);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to search foods.' });
+    }
+});
+
 // Update Goal
 app.post('/api/goals', (req, res) => {
     const { memberId, goalType, targetValue, currentValue } = req.body;
