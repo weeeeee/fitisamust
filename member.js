@@ -383,6 +383,9 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Pot Roast (1 slice, 3 oz)", cal: 210, pro: 23, carb: 2, fat: 12 }
     ];
 
+    // Sort foods alphabetically
+    prebuiltFoods.sort((a, b) => a.name.localeCompare(b.name));
+
     // Populate Datalist
     const datalist = document.getElementById('food-presets');
     if (datalist) {
