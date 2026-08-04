@@ -133,6 +133,22 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Shrimp (4 oz cooked)", cal: 112, pro: 24, carb: 0, fat: 1 },
         { name: "Turkey Breast (4 oz sliced)", cal: 104, pro: 22, carb: 2, fat: 1 },
         
+        // Name Brand Grocery Items - Pillsbury Dough
+        { name: "Pillsbury Original Crescent Rolls (1 roll)", cal: 100, pro: 2, carb: 11, fat: 6 },
+        { name: "Pillsbury Grands! Flaky Layers Original Biscuits (1 biscuit)", cal: 170, pro: 3, carb: 23, fat: 7 },
+        { name: "Pillsbury Grands! Southern Homestyle Butter Tastin' Biscuits (1 biscuit)", cal: 170, pro: 3, carb: 22, fat: 8 },
+        { name: "Pillsbury Grands! Flaky Layers Honey Butter Biscuits (1 biscuit)", cal: 180, pro: 3, carb: 24, fat: 8 },
+        { name: "Pillsbury Cinnamon Rolls with Icing (1 roll)", cal: 140, pro: 2, carb: 23, fat: 5 },
+        { name: "Pillsbury Grands! Cinnamon Rolls with Cinnabon Icing (1 roll)", cal: 310, pro: 4, carb: 51, fat: 10 },
+        { name: "Pillsbury Apple Turnovers with Icing (1 turnover)", cal: 240, pro: 3, carb: 34, fat: 10 },
+        { name: "Pillsbury Classic Crust Pizza Dough (1/6 crust)", cal: 170, pro: 5, carb: 35, fat: 2 },
+        { name: "Pillsbury Cornbread Swirls (1 swirl)", cal: 150, pro: 3, carb: 24, fat: 5 },
+        { name: "Pillsbury French Bread Dough (1/5 loaf)", cal: 130, pro: 4, carb: 27, fat: 1 },
+        { name: "Pillsbury Refrigerated Pie Crusts (1/8 crust)", cal: 100, pro: 1, carb: 11, fat: 6 },
+        { name: "Pillsbury Chocolate Chip Cookie Dough (1 cookie)", cal: 130, pro: 1, carb: 18, fat: 6 },
+        { name: "Pillsbury Sugar Cookie Dough (1 cookie)", cal: 120, pro: 1, carb: 17, fat: 5 },
+        { name: "Pillsbury Soft Baked Chocolate Chip Cookies (2 cookies)", cal: 150, pro: 1, carb: 21, fat: 7 },
+
         // Name Brand Grocery Items
         { name: "Oikos Triple Zero Greek Yogurt", cal: 90, pro: 15, carb: 7, fat: 0 },
         { name: "Chobani Non-Fat Greek Yogurt", cal: 90, pro: 16, carb: 6, fat: 0 },
@@ -770,7 +786,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let localResults = prebuiltFoods;
         if (query) {
-            localResults = prebuiltFoods.filter(food => food.name.toLowerCase().includes(query));
+            const altQuery = query.replace(/pilsberry|pillsberry|pilsbury/g, 'pillsbury');
+            const searchTerms = [query, altQuery];
+            localResults = prebuiltFoods.filter(food => {
+                const nameLower = food.name.toLowerCase();
+                return searchTerms.some(term => nameLower.includes(term));
+            });
         }
 
         let dbResults = [];

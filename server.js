@@ -404,8 +404,9 @@ app.get('/api/food/search', (req, res) => {
     const query = req.query.q;
     if (!query) return res.json([]);
     try {
-        const stmt = db.prepare(`SELECT * FROM global_foods WHERE name LIKE ? LIMIT 50`);
-        const foods = stmt.all(`%${query}%`);
+        const altQuery = query.toLowerCase().replace(/pilsberry|pillsberry|pilsbury/g, 'pillsbury');
+        const stmt = db.prepare(`SELECT * FROM global_foods WHERE name LIKE ? OR name LIKE ? LIMIT 50`);
+        const foods = stmt.all(`%${query}%`, `%${altQuery}%`);
         res.json(foods);
     } catch (err) {
         console.error(err.message);
