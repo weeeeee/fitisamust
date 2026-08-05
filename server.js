@@ -505,10 +505,21 @@ app.post('/api/weight', (req, res) => {
 });
 
 app.put('/api/weight/:id', (req, res) => {
-    const { weight } = req.body;
+    const { weight, memberId, source } = req.body;
     try {
-        const stmt = db.prepare('UPDATE weight_logs SET weight = ? WHERE id = ?');
-        stmt.run(weight, req.params.id);
+        const weightVal = parseFloat(weight);
+        const logId = req.params.id;
+        const stmt = db.prepare('UPDATE weight_logs SET weight = ?, source = COALESCE(?, source) WHERE id = ?');
+        stmt.run(weightVal, source || 'Manual Input', logId);
+
+        let targetMemberId = memberId;
+        if (!targetMemberId) {
+            const log = db.prepare('SELECT member_id FROM weight_logs WHERE id = ?').get(logId);
+            if (log) targetMemberId = log.member_id;
+        }
+        if (targetMemberId) {
+            db.prepare('UPDATE intake_profiles SET weight = ? WHERE member_id = ?').run(weightVal, targetMemberId);
+        }
         res.json({ message: 'Weight updated successfully' });
     } catch (err) {
         console.error(err.message);

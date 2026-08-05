@@ -32,7 +32,8 @@ window.deleteWeight = async function(id) {
     try {
         const res = await fetch(getApiUrl(`/api/weight/${id}`), { method: 'DELETE' });
         if (res.ok) {
-            window.location.reload();
+            if (window.triggerDashboardReload) window.triggerDashboardReload();
+            else window.location.reload();
         } else {
             alert('Failed to delete weight log.');
         }
@@ -42,7 +43,8 @@ window.deleteWeight = async function(id) {
 };
 
 window.editWeight = function(id) {
-    const log = window.currentWeightLogs.find(w => w.id === id);
+    if (!window.currentWeightLogs) return;
+    const log = window.currentWeightLogs.find(w => w.id == id);
     if (!log) return;
     document.getElementById('edit-weight-id').value = log.id;
     document.getElementById('weight-value').value = log.weight;
@@ -525,16 +527,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('weight-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const weight = document.getElementById('weight-value').value;
+        const weightVal = parseFloat(document.getElementById('weight-value').value);
         const id = document.getElementById('edit-weight-id').value;
         const method = id ? 'PUT' : 'POST';
         const url = id ? getApiUrl(`/api/weight/${id}`) : getApiUrl('/api/weight');
         
-        await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ memberId: member.id, weight })
-        });
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId: member.id, weight: weightVal, source: 'Manual Input' })
+            });
+            const data = await safeJsonParse(res);
+            if (!res.ok) {
+                alert('Error updating weight: ' + (data.error || 'Failed'));
+                return;
+            }
+        } catch (err) {
+            alert('Error updating weight: ' + err.message);
+            return;
+        }
         
         window.cancelWeightEdit();
         loadDashboard();
