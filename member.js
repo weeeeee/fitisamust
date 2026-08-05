@@ -5,6 +5,22 @@ function getApiUrl(endpoint) {
     return endpoint;
 }
 
+async function safeJsonParse(response) {
+    const text = await response.text();
+    try {
+        const data = JSON.parse(text);
+        return data;
+    } catch (e) {
+        console.error('Raw non-JSON response from server:', text);
+        const cleanText = text.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+        if (response.status === 404) {
+            throw new Error('API endpoint not found (404). Please ensure backend server is active.');
+        }
+        const snippet = cleanText ? cleanText.substring(0, 120) : 'Server returned an invalid response';
+        throw new Error(`Server returned error (${response.status}): ${snippet}`);
+    }
+}
+
 let macroChartInstance = null;
 let weightChartInstance = null;
 window.currentFoodLogs = [];
@@ -1037,11 +1053,12 @@ async function scanBluetoothScale() {
             const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
             const memberId = member.id || 3;
 
-            await fetch('/api/integrations/connect', {
+            const res = await fetch(getApiUrl('/api/integrations/connect'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ memberId, provider: 'Bluetooth Scale (' + (device.name || 'Smart Scale') + ')' })
             });
+            await safeJsonParse(res);
 
             alert('Successfully paired with ' + (device.name || 'Smart Scale') + '! Weight readings will sync automatically when weighed.');
             loadIntegrations();
@@ -1073,12 +1090,12 @@ async function syncHealthAppModal() {
     const memberId = member.id || 3;
 
     try {
-        const response = await fetch('/api/integrations/sync-weight', {
+        const response = await fetch(getApiUrl('/api/integrations/sync-weight'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ memberId, weight: weightVal, provider: 'Apple/Google Health' })
         });
-        const data = await response.json();
+        const data = await safeJsonParse(response);
         if (response.ok) {
             alert('✅ Weight synced from Health App: ' + weightVal + ' lbs!');
             loadDashboard();
@@ -1137,7 +1154,7 @@ async function submitWearableLink(event) {
             body: JSON.stringify({ memberId, provider: providerName })
         });
         
-        const data = await res.json();
+        const data = await safeJsonParse(res);
         
         if (res.ok) {
             alert(`✅ ${providerName} linked successfully!\nAutomated weight webhook sync is now active.`);
@@ -1164,7 +1181,7 @@ async function triggerWebhookTest() {
     const testWeight = (160 + Math.random() * 10).toFixed(1);
 
     try {
-        const response = await fetch('/api/webhooks/weight', {
+        const response = await fetch(getApiUrl('/api/webhooks/weight'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1173,7 +1190,7 @@ async function triggerWebhookTest() {
                 source: 'Smart Scale Webhook'
             })
         });
-        const data = await response.json();
+        const data = await safeJsonParse(response);
         if (response.ok) {
             alert('🚀 Simulated Webhook Received!\nLogged Weight: ' + testWeight + ' lbs from Smart Scale.');
             loadDashboard();
@@ -1192,9 +1209,9 @@ async function loadIntegrations() {
     const memberId = member.id || 3;
 
     try {
-        const res = await fetch('/api/integrations/' + memberId);
+        const res = await fetch(getApiUrl('/api/integrations/' + memberId));
         if (res.ok) {
-            const data = await res.json();
+            const data = await safeJsonParse(res);
             if (data.integrations && data.integrations.length > 0) {
                 const banner = document.getElementById('integration-status-banner');
                 if (banner) {
