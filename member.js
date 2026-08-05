@@ -1,3 +1,10 @@
+function getApiUrl(endpoint) {
+    if (window.location.protocol === 'file:' || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port && window.location.port !== '3001')) {
+        return 'http://localhost:3001' + endpoint;
+    }
+    return endpoint;
+}
+
 let macroChartInstance = null;
 let weightChartInstance = null;
 window.currentFoodLogs = [];
