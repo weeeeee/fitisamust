@@ -401,7 +401,7 @@ app.get('/api/dashboard/:memberId', (req, res) => {
         const food_logs = db.prepare('SELECT * FROM food_logs WHERE member_id = ? AND log_date = DATE(\'now\', \'localtime\')').all(memberId);
         
         // Fetch historical weight logs
-        const weight_logs = db.prepare('SELECT * FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC').all(memberId);
+        const weight_logs = db.prepare('SELECT * FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC, id DESC').all(memberId);
 
         // Fetch macro totals
         const weekly_macros = db.prepare(`
