@@ -30,7 +30,7 @@ window.lastSelectedMeal = localStorage.getItem('fitisamust_last_meal') || 'Break
 window.deleteWeight = async function(id) {
     if (!confirm('Are you sure you want to delete this weight log?')) return;
     try {
-        const res = await fetch(`/api/weight/${id}`, { method: 'DELETE' });
+        const res = await fetch(getApiUrl(`/api/weight/${id}`), { method: 'DELETE' });
         if (res.ok) {
             window.location.reload();
         } else {
@@ -69,7 +69,7 @@ window.deleteFood = async function(id) {
         } catch(e) {}
     }
     try {
-        await fetch(`/api/food/${id}`, { method: 'DELETE' });
+        await fetch(getApiUrl(`/api/food/${id}`), { method: 'DELETE' });
     } catch (err) {
         console.error(err);
     }
@@ -528,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const weight = document.getElementById('weight-value').value;
         const id = document.getElementById('edit-weight-id').value;
         const method = id ? 'PUT' : 'POST';
-        const url = id ? `/api/weight/${id}` : '/api/weight';
+        const url = id ? getApiUrl(`/api/weight/${id}`) : getApiUrl('/api/weight');
         
         await fetch(url, {
             method: method,
@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const id = document.getElementById('edit-food-id').value;
         const method = id ? 'PUT' : 'POST';
-        const url = id ? `/api/food/${id}` : '/api/food';
+        const url = id ? getApiUrl(`/api/food/${id}`) : getApiUrl('/api/food');
         
         try {
             const res = await fetch(url, {
@@ -605,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.loadDashboard = loadDashboard;
         window.triggerDashboardReload = loadDashboard;
         try {
-            const res = await fetch(`/api/dashboard/${member.id}`);
+            const res = await fetch(getApiUrl(`/api/dashboard/${member.id}`));
             const data = await res.json();
             
             // Populate Profile Snapshot
@@ -949,7 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let dbResults = [];
         if (query && query.length >= 2) {
             try {
-                const response = await fetch(`/api/food/search?q=${encodeURIComponent(query)}`);
+                const response = await fetch(getApiUrl(`/api/food/search?q=${encodeURIComponent(query)}`));
                 if (response.ok) {
                     const data = await response.json();
                     dbResults = data.map(item => ({
