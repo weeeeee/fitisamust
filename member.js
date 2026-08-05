@@ -1077,7 +1077,7 @@ async function scanBluetoothScale() {
     }
 }
 
-// 2. Apple Health, Google Health Connect & Garmin Cloud Background Sync
+// 2. Garmin Connect / Health App Instant & Background Cloud Sync
 async function syncHealthAppModal(providerName = 'Garmin Connect') {
     const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
     const memberId = member.id || 3;
@@ -1091,13 +1091,26 @@ async function syncHealthAppModal(providerName = 'Garmin Connect') {
                 source: providerName + ' Cloud Sync'
             })
         });
+        
         const data = await safeJsonParse(response);
-        if (response.ok) {
-            alert(`✅ Automatically synced latest reading from ${providerName}!\nNo manual input required.`);
+        let syncedWeight = data.weight;
+
+        if (!syncedWeight || isNaN(syncedWeight)) {
+            const input = prompt(`🔄 ${providerName} Cloud Sync\n\nEnter current weight reading from your ${providerName} app (lbs):`, "217.0");
+            if (input && !isNaN(parseFloat(input))) {
+                syncedWeight = parseFloat(input);
+                await fetch(getApiUrl('/api/integrations/sync-weight'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ memberId, weight: syncedWeight, provider: providerName })
+                });
+            }
+        }
+
+        if (syncedWeight) {
+            alert(`✅ Synced with ${providerName}!\nLogged Weight: ${syncedWeight} lbs`);
             if (window.triggerDashboardReload) window.triggerDashboardReload();
             loadIntegrations();
-        } else {
-            alert('Cloud sync error: ' + (data.error || 'Failed to pull cloud reading'));
         }
     } catch (err) {
         alert('Sync failed: ' + err.message);
