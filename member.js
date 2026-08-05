@@ -602,6 +602,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Helper to reload everything
     async function loadDashboard() {
+        window.loadDashboard = loadDashboard;
+        window.triggerDashboardReload = loadDashboard;
         try {
             const res = await fetch(`/api/dashboard/${member.id}`);
             const data = await res.json();
@@ -1092,7 +1094,7 @@ async function syncHealthAppModal(providerName = 'Garmin Connect') {
         const data = await safeJsonParse(response);
         if (response.ok) {
             alert(`✅ Automatically synced latest reading from ${providerName}!\nNo manual input required.`);
-            loadDashboard();
+            if (window.triggerDashboardReload) window.triggerDashboardReload();
             loadIntegrations();
         } else {
             alert('Cloud sync error: ' + (data.error || 'Failed to pull cloud reading'));
@@ -1177,7 +1179,7 @@ async function submitWearableLink(event) {
                 document.getElementById('wearable-today-weight').value = '';
             }
 
-            loadDashboard();
+            if (window.triggerDashboardReload) window.triggerDashboardReload();
             loadIntegrations();
         } else {
             alert('Failed to link wearable: ' + (data.error || 'Unknown error'));
@@ -1212,7 +1214,7 @@ async function triggerWebhookTest() {
         const data = await safeJsonParse(response);
         if (response.ok) {
             alert('🚀 Simulated Webhook Received!\nLogged Weight: ' + testWeight + ' lbs from Smart Scale.');
-            loadDashboard();
+            if (window.triggerDashboardReload) window.triggerDashboardReload();
             loadIntegrations();
         } else {
             alert('Webhook error: ' + data.error);
