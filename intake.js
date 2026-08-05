@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadExistingSettings() {
         try {
-            const res = await fetch(`/api/dashboard/${member.id}`);
+            const res = await fetch(getApiUrl(`/api/dashboard/${member.id}`));
             const data = await res.json();
             
             if (data.intake_profile) {
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         try {
-            const res = await fetch('/api/intake', {
+            const res = await fetch(getApiUrl('/api/intake'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = document.getElementById('goal-target').value;
         
         try {
-            const res = await fetch('/api/goals', {
+            const res = await fetch(getApiUrl('/api/goals'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ memberId: member.id, goalType, currentValue: current, targetValue: target })
