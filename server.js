@@ -33,9 +33,18 @@ app.use((req, res, next) => {
     next();
 });
 
-// Initialize Nodemailer with Environment Variables or Ethereal
+// Initialize Nodemailer with Gmail, Custom SMTP, or Ethereal test account
 let transporter;
-if (process.env.SMTP_HOST) {
+if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+    transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_APP_PASSWORD
+        }
+    });
+    console.log('Gmail SMTP Email Transporter configured.');
+} else if (process.env.SMTP_HOST) {
     transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: process.env.SMTP_PORT || 587,
@@ -61,6 +70,94 @@ if (process.env.SMTP_HOST) {
                 user: account.user,
                 pass: account.pass
             }
+        });
+    });
+}
+
+// Helper: Send Welcome & Initial Temporary Password Email
+async function sendInitialTempPasswordEmail(name, recipientEmail, tempPassword) {
+    if (!transporter) return false;
+    const sender = process.env.GMAIL_USER 
+        ? `"FIT IS A MUST Support" <${process.env.GMAIL_USER}>` 
+        : (process.env.SMTP_FROM_EMAIL || '"FIT IS A MUST Team" <noreply@fitisamust.com>');
+
+    const mailOptions = {
+        from: sender,
+        to: recipientEmail,
+        subject: 'Welcome to FIT IS A MUST - Your Temporary Password',
+        html: `
+            <div style="font-family: Arial, sans-serif; background: #0f172a; color: #ffffff; padding: 30px; border-radius: 10px; max-width: 500px; margin: 0 auto;">
+                <h2 style="color: #38bdf8; text-align: center; margin-top: 0;">Welcome, ${name || 'Member'}! 💪</h2>
+                <p style="color: #cbd5e1; font-size: 0.95rem;">Thank you for joining FIT IS A MUST. Your temporary password to log in to member portal content is:</p>
+                <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); padding: 16px; border-radius: 8px; font-size: 1.4rem; text-align: center; letter-spacing: 2px; font-weight: bold; color: #c084fc; margin: 20px 0;">
+                    ${tempPassword}
+                </div>
+                <p style="color: #94a3b8; font-size: 0.85rem; text-align: center;">
+                    Please log in using this temporary password. You will be prompted to set a new password upon login.
+                </p>
+            </div>
+        `,
+        text: `Hi ${name || 'Member'},\n\nWelcome to FIT IS A MUST! Your temporary login password is: ${tempPassword}\n\nPlease log in at fitisamust.com using this password.`
+    };
+
+    return new Promise((resolve) => {
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending welcome email:', error);
+                return resolve(false);
+            }
+            console.log('Welcome email sent successfully: %s', info.messageId);
+            if (nodemailer.getTestMessageUrl(info)) console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+            resolve(true);
+        });
+    });
+}
+
+// Helper: Send Password Recovery & Temporary Password Email
+async function sendPasswordRecoveryEmail(recipientEmail, tempPassword, resetToken) {
+    if (!transporter) return false;
+    const sender = process.env.GMAIL_USER 
+        ? `"FIT IS A MUST Support" <${process.env.GMAIL_USER}>` 
+        : (process.env.SMTP_FROM_EMAIL || '"FIT IS A MUST Team" <noreply@fitisamust.com>');
+    
+    const resetUrl = `https://fitisamust.com/reset-password.html?token=${resetToken}`;
+
+    const mailOptions = {
+        from: sender,
+        to: recipientEmail,
+        subject: 'FIT IS A MUST - Password Reset & Recovery',
+        html: `
+            <div style="font-family: Arial, sans-serif; background: #0f172a; color: #ffffff; padding: 30px; border-radius: 10px; max-width: 500px; margin: 0 auto;">
+                <h2 style="color: #38bdf8; text-align: center; margin-top: 0;">Password Reset Request 🔑</h2>
+                <p style="color: #cbd5e1; font-size: 0.95rem;">We received a request to recover your password. Here is your temporary login password:</p>
+                <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); padding: 16px; border-radius: 8px; font-size: 1.4rem; text-align: center; letter-spacing: 2px; font-weight: bold; color: #f87171; margin: 20px 0;">
+                    ${tempPassword}
+                </div>
+                <p style="color: #cbd5e1; font-size: 0.9rem; text-align: center; margin-bottom: 25px;">
+                    Or click the direct reset link below:
+                </p>
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <a href="${resetUrl}" style="background: #38bdf8; color: #0f172a; padding: 12px 24px; border-radius: 6px; font-weight: bold; text-decoration: none; display: inline-block;">
+                        Reset Password Now
+                    </a>
+                </div>
+                <p style="color: #94a3b8; font-size: 0.8rem; text-align: center;">
+                    If you did not request this, please ignore this email or contact support.
+                </p>
+            </div>
+        `,
+        text: `FIT IS A MUST Password Reset Request\n\nYour temporary password is: ${tempPassword}\n\nReset link: ${resetUrl}`
+    };
+
+    return new Promise((resolve) => {
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending password recovery email:', error);
+                return resolve(false);
+            }
+            console.log('Password recovery email sent: %s', info.messageId);
+            if (nodemailer.getTestMessageUrl(info)) console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+            resolve(true);
         });
     });
 }
@@ -172,17 +269,15 @@ db.exec(`
 `);
 
 // Purchase Endpoint
-app.post('/api/purchase', (req, res) => {
+app.post('/api/purchase', async (req, res) => {
     const { name, email, cardNumber } = req.body;
     
-    // Basic validation
     if (!name || !email || !cardNumber) {
         return res.status(400).json({ error: 'Name, email, and card details are required.' });
     }
 
     console.log(`Processing simulated $29.99 payment for ${email}`);
     
-    // Generate a temporary 8-character password
     const tempPassword = crypto.randomBytes(4).toString('hex');
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(tempPassword, salt);
@@ -192,33 +287,12 @@ app.post('/api/purchase', (req, res) => {
         const info = stmt.run(name, email, hashedPassword, 1);
         console.log(`Successfully added member with ID ${info.lastInsertRowid}`);
         
-        // Send Email
-        if (transporter) {
-            const mailOptions = {
-                from: process.env.SMTP_FROM_EMAIL || '"FIT IS A MUST Team" <noreply@fitisamust.com>',
-                to: email,
-                subject: 'Welcome! Your Member Access Details',
-                text: `Hi ${name},\n\nThank you for purchasing The Ultimate Guide! Your temporary password to access member content is: ${tempPassword}\n\nPlease log in at our website using this password.\n\nCheers,\nFIT IS A MUST Team`
-            };
-
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.error('Error sending email:', error);
-                } else {
-                    console.log('Message sent: %s', info.messageId);
-                    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info)); // URL to view the email
-                }
-            });
-        }
+        await sendInitialTempPasswordEmail(name, email, tempPassword);
 
         res.status(201).json({ message: 'Purchase successful! Please check your email for your temporary password.', memberId: info.lastInsertRowid });
     } catch (err) {
         if (err.message.includes('UNIQUE constraint failed')) {
             return res.status(409).json({ error: 'This email has already purchased the book.' });
-        }
-        if (err.message.includes('NOT NULL constraint failed: members.password')) {
-            // This happens if the alter table failed but table existed. A real fix is dropping test db.
-            console.error('Schema error - recreate DB.');
         }
         console.error(err.message);
         return res.status(500).json({ error: 'Failed to complete purchase.' });
@@ -285,42 +359,29 @@ app.post('/api/force-password-change', (req, res) => {
 });
 
 // Forgot Password
-app.post('/api/forgot-password', (req, res) => {
+app.post('/api/forgot-password', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
     try {
-        const user = db.prepare('SELECT id FROM members WHERE email = ?').get(email);
+        const user = db.prepare('SELECT id, name FROM members WHERE email = ?').get(email);
         if (!user) {
-            return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+            return res.json({ message: 'If an account with that email exists, a password recovery email has been sent.' });
         }
 
+        const tempPassword = crypto.randomBytes(4).toString('hex');
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(tempPassword, salt);
         const token = crypto.randomBytes(20).toString('hex');
         const expires = new Date(Date.now() + 3600000).toISOString(); // 1 hour
 
-        db.prepare('UPDATE members SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(token, expires, user.id);
+        db.prepare('UPDATE members SET password = ?, requires_password_change = 1, reset_token = ?, reset_token_expires = ? WHERE id = ?').run(hashedPassword, token, expires, user.id);
 
-        if (transporter) {
-            const resetUrl = `http://localhost:${PORT}/reset-password.html?token=${token}`;
-            const mailOptions = {
-                from: process.env.SMTP_FROM_EMAIL || '"FIT IS A MUST Team" <noreply@fitisamust.com>',
-                to: email,
-                subject: 'Password Reset Request',
-                text: `You requested a password reset. Click the link below to set a new password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.\n\nCheers,\nFIT IS A MUST Team`
-            };
+        await sendPasswordRecoveryEmail(email, tempPassword, token);
 
-            transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.error('Error sending reset email:', error);
-                } else {
-                    console.log('Reset email sent: %s', info.messageId);
-                    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
-                }
-            });
-        }
-        res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+        res.json({ message: 'If an account with that email exists, a password recovery email has been sent.' });
     } catch (err) {
-        console.error(err.message);
+        console.error('Forgot password error:', err);
         res.status(500).json({ error: 'Internal server error.' });
     }
 });
