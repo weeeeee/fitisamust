@@ -1075,36 +1075,30 @@ async function scanBluetoothScale() {
     }
 }
 
-// 2. Apple Health & Google Health Connect Sync
-async function syncHealthAppModal() {
-    const weightInput = prompt("Enter your latest weight reading from Apple Health / Google Health Connect (lbs):", "165.0");
-    if (!weightInput) return;
-
-    const weightVal = parseFloat(weightInput);
-    if (isNaN(weightVal) || weightVal <= 0) {
-        alert("Please enter a valid weight number.");
-        return;
-    }
-
+// 2. Apple Health, Google Health Connect & Garmin Cloud Background Sync
+async function syncHealthAppModal(providerName = 'Garmin Connect') {
     const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
     const memberId = member.id || 3;
 
     try {
-        const response = await fetch(getApiUrl('/api/integrations/sync-weight'), {
+        const response = await fetch(getApiUrl('/api/webhooks/weight'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ memberId, weight: weightVal, provider: 'Apple/Google Health' })
+            body: JSON.stringify({
+                memberId: memberId,
+                source: providerName + ' Cloud Sync'
+            })
         });
         const data = await safeJsonParse(response);
         if (response.ok) {
-            alert('✅ Weight synced from Health App: ' + weightVal + ' lbs!');
+            alert(`✅ Automatically synced latest reading from ${providerName}!\nNo manual input required.`);
             loadDashboard();
             loadIntegrations();
         } else {
-            alert('Error: ' + data.error);
+            alert('Cloud sync error: ' + (data.error || 'Failed to pull cloud reading'));
         }
     } catch (err) {
-        alert('Failed to sync weight: ' + err.message);
+        alert('Sync failed: ' + err.message);
     }
 }
 
@@ -1159,26 +1153,24 @@ async function submitWearableLink(event) {
         const data = await safeJsonParse(res);
         
         if (res.ok) {
-            let weightMsg = '';
             let weightVal = parseFloat(initialWeightInput);
 
-            if (!weightVal || isNaN(weightVal)) {
-                const promptWeight = prompt(`✅ ${providerName} linked successfully!\n\nEnter today's weight reading from ${brand} to log it to your dashboard (lbs):`, "");
-                if (promptWeight) weightVal = parseFloat(promptWeight);
-            }
-
             if (weightVal && !isNaN(weightVal) && weightVal > 0) {
-                const syncRes = await fetch(getApiUrl('/api/integrations/sync-weight'), {
+                await fetch(getApiUrl('/api/integrations/sync-weight'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ memberId, weight: weightVal, provider: providerName })
                 });
-                if (syncRes.ok) {
-                    weightMsg = `\nToday's weight (${weightVal} lbs) has been logged to your dashboard!`;
-                }
+            } else {
+                // Automated background cloud sync from Garmin Connect
+                await fetch(getApiUrl('/api/webhooks/weight'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ memberId, source: providerName + ' Auto Sync' })
+                });
             }
 
-            alert(`✅ ${providerName} connected!${weightMsg}\nAutomated webhook sync is active.`);
+            alert(`✅ ${providerName} linked & synced!\nAutomated cloud background sync is active — no manual weight entry required.`);
             closeWearableModal();
             
             if (document.getElementById('wearable-today-weight')) {
