@@ -596,9 +596,21 @@ app.post('/api/webhooks/weight', (req, res) => {
             targetMemberId = defaultUser ? defaultUser.id : 3;
         }
 
-        const weightVal = parseFloat(weight) || 165.0;
-        const stmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date) VALUES (?, ?, DATE('now', 'localtime'))");
-        stmt.run(targetMemberId, weightVal);
+        let weightVal = parseFloat(weight);
+        if (isNaN(weightVal) || weightVal <= 0) {
+            const latestLog = db.prepare('SELECT weight FROM weight_logs WHERE member_id = ? ORDER BY id DESC LIMIT 1').get(targetMemberId);
+            if (latestLog && latestLog.weight) {
+                weightVal = latestLog.weight;
+            } else {
+                const profile = db.prepare('SELECT weight FROM intake_profiles WHERE member_id = ?').get(targetMemberId);
+                weightVal = (profile && profile.weight) ? profile.weight : null;
+            }
+        }
+
+        if (weightVal && weightVal > 0) {
+            const stmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date) VALUES (?, ?, DATE('now', 'localtime'))");
+            stmt.run(targetMemberId, weightVal);
+        }
 
         const intStmt = db.prepare(`
             INSERT INTO member_integrations (member_id, provider, status, last_synced_at)
