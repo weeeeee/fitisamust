@@ -971,7 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localSearchResults.appendChild(itemDiv);
         });
     }
-}
+});
 
 // --- Connected Scales & Health Devices Integration Engine ---
 
@@ -1061,42 +1061,67 @@ async function syncHealthAppModal() {
 }
 
 // 3. Withings Smart Scale Cloud Sync
-async function connectWithingsCloud() {
-    const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
-    const memberId = member.id || 3;
+function connectWithingsCloud() {
+    connectFitbitWearables('Withings Body+ Scale');
+}
 
-    try {
-        const res = await fetch('/api/integrations/connect', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ memberId, provider: 'Withings Smart Scale' })
-        });
-        if (res.ok) {
-            alert('✅ Withings Smart Scale account linked! Webhook auto-sync is active.');
-            loadIntegrations();
+// 4. Fitbit / Garmin / Wearables Link Modal Engine
+function connectFitbitWearables(brand = 'Fitbit') {
+    const modal = document.getElementById('wearable-link-modal');
+    if (modal) {
+        const select = document.getElementById('wearable-brand-select');
+        if (select && brand) {
+            select.value = brand;
         }
-    } catch (err) {
-        alert('Failed to link Withings scale.');
+        modal.style.display = 'flex';
+    } else {
+        submitWearableDirect(brand);
     }
 }
 
-// 4. Fitbit / Garmin / Wearables Link
-async function connectFitbitWearables() {
-    const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
-    const memberId = member.id || 3;
+function closeWearableModal() {
+    const modal = document.getElementById('wearable-link-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function submitWearableLink(event) {
+    if (event) event.preventDefault();
+    const brand = document.getElementById('wearable-brand-select').value;
+    const nickname = document.getElementById('wearable-account-name').value;
+    const providerName = nickname ? `${brand} (${nickname})` : brand;
+    const btn = document.getElementById('btn-save-wearable');
 
     try {
-        const res = await fetch('/api/integrations/connect', {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting...';
+        }
+
+        const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
+        const memberId = member.id || 3;
+
+        const res = await fetch(getApiUrl('/api/integrations/connect'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ memberId, provider: 'Fitbit / Wearables' })
+            body: JSON.stringify({ memberId, provider: providerName })
         });
+        
+        const data = await res.json();
+        
         if (res.ok) {
-            alert('✅ Fitbit & Wearable Health sync connected!');
+            alert(`✅ ${providerName} linked successfully!\nAutomated weight webhook sync is now active.`);
+            closeWearableModal();
             loadIntegrations();
+        } else {
+            alert('Failed to link wearable: ' + (data.error || 'Unknown error'));
         }
     } catch (err) {
-        alert('Failed to link wearable.');
+        alert('Connection error: ' + err.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-plug"></i> Connect & Authorize';
+        }
     }
 }
 
