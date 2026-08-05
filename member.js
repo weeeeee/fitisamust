@@ -1248,9 +1248,14 @@ async function loadIntegrations() {
                             <strong style="color: #fff;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Active Connected Devices:</strong> 
                             <span style="color: #38bdf8;">${activeNames}</span>
                         </div>
-                        <button onclick="triggerWebhookTest()" class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 4px 10px;">
-                            <i class="fa-solid fa-paper-plane"></i> Test Webhook Sync
-                        </button>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button onclick="syncHealthAppModal()" class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 4px 10px; border-color: #ff3b30; color: #ff3b30;">
+                                <i class="fa-solid fa-sync"></i> Sync Today's Weight
+                            </button>
+                            <button onclick="triggerWebhookTest()" class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 4px 10px;">
+                                <i class="fa-solid fa-paper-plane"></i> Test Webhook Sync
+                            </button>
+                        </div>
                     `;
                 }
             }
