@@ -208,6 +208,13 @@ try {
     // Ignore
 }
 
+try {
+    db.exec(`ALTER TABLE members ADD COLUMN forum_username TEXT`);
+    db.exec(`ALTER TABLE members ADD COLUMN forum_password TEXT`);
+} catch (e) {
+    // Ignore
+}
+
 // Attempt to add meal_type column to older tables
 try {
     db.exec(`ALTER TABLE food_logs ADD COLUMN meal_type TEXT DEFAULT 'Breakfast'`);
@@ -275,6 +282,26 @@ db.exec(`
         last_synced_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         status TEXT DEFAULT 'active',
         UNIQUE(member_id, provider),
+        FOREIGN KEY(member_id) REFERENCES members(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS forum_threads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        member_id INTEGER NOT NULL,
+        category TEXT NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(member_id) REFERENCES members(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS forum_replies (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        thread_id INTEGER NOT NULL,
+        member_id INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(thread_id) REFERENCES forum_threads(id) ON DELETE CASCADE,
         FOREIGN KEY(member_id) REFERENCES members(id)
     );
 `);
@@ -706,6 +733,183 @@ app.post('/api/webhooks/weight', (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: 'Webhook processing failed.' });
+    }
+});
+
+// --- Forum Endpoints ---
+
+// Get member forum settings
+app.get('/api/member/forum-settings/:memberId', (req, res) => {
+    try {
+        const member = db.prepare('SELECT id, name, email, forum_username, forum_password FROM members WHERE id = ?').get(req.params.memberId);
+        if (!member) return res.status(404).json({ error: 'Member not found.' });
+        res.json({
+            forum_username: member.forum_username || '',
+            has_forum_password: !!member.forum_password
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch forum settings.' });
+    }
+});
+
+// Update member forum settings (username & password)
+app.post('/api/member/forum-settings', (req, res) => {
+    const { memberId, forumUsername, forumPassword } = req.body;
+    if (!memberId || !forumUsername || !forumPassword) {
+        return res.status(400).json({ error: 'Member ID, Forum Username, and Forum Password are required.' });
+    }
+
+    try {
+        const existing = db.prepare('SELECT id FROM members WHERE forum_username = ? AND id != ?').get(forumUsername, memberId);
+        if (existing) {
+            return res.status(409).json({ error: 'This Forum Username is already taken by another member.' });
+        }
+
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(forumPassword, salt);
+
+        db.prepare('UPDATE members SET forum_username = ?, forum_password = ? WHERE id = ?').run(forumUsername, hashedPassword, memberId);
+        res.json({ message: 'Forum credentials updated successfully!', forumUsername });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to update forum credentials.' });
+    }
+});
+
+// Verify forum password access for forum gate
+app.post('/api/forum/verify-access', (req, res) => {
+    const { memberId, forumUsername, forumPassword } = req.body;
+    if (!memberId || !forumUsername || !forumPassword) {
+        return res.status(400).json({ error: 'Member ID, Forum Username, and Forum Password are required.' });
+    }
+
+    try {
+        const member = db.prepare('SELECT id, name, email, forum_username, forum_password FROM members WHERE id = ?').get(memberId);
+        if (!member) return res.status(401).json({ error: 'Member account not found.' });
+        if (!member.forum_username || !member.forum_password) {
+            return res.status(403).json({ error: 'Forum credentials not configured. Please set them in Member Settings first.' });
+        }
+
+        if (member.forum_username.toLowerCase() !== forumUsername.toLowerCase()) {
+            return res.status(401).json({ error: 'Invalid Forum Username.' });
+        }
+
+        const isMatch = bcrypt.compareSync(forumPassword, member.forum_password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid Forum Password.' });
+        }
+
+        res.json({
+            success: true,
+            member: {
+                id: member.id,
+                name: member.name,
+                forum_username: member.forum_username
+            }
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to verify forum access.' });
+    }
+});
+
+// Get Forum Threads (Optionally filter by category)
+app.get('/api/forum/threads', (req, res) => {
+    const category = req.query.category;
+    try {
+        let threads;
+        if (category && category !== 'All') {
+            threads = db.prepare(`
+                SELECT ft.*, m.name as author_name, COALESCE(m.forum_username, m.name) as author_username,
+                       (SELECT COUNT(*) FROM forum_replies fr WHERE fr.thread_id = ft.id) as reply_count
+                FROM forum_threads ft
+                JOIN members m ON ft.member_id = m.id
+                WHERE ft.category = ?
+                ORDER BY ft.created_at DESC
+            `).all(category);
+        } else {
+            threads = db.prepare(`
+                SELECT ft.*, m.name as author_name, COALESCE(m.forum_username, m.name) as author_username,
+                       (SELECT COUNT(*) FROM forum_replies fr WHERE fr.thread_id = ft.id) as reply_count
+                FROM forum_threads ft
+                JOIN members m ON ft.member_id = m.id
+                ORDER BY ft.created_at DESC
+            `).all();
+        }
+        res.json(threads);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch forum threads.' });
+    }
+});
+
+// Get Single Thread with Replies
+app.get('/api/forum/threads/:id', (req, res) => {
+    try {
+        const thread = db.prepare(`
+            SELECT ft.*, m.name as author_name, COALESCE(m.forum_username, m.name) as author_username
+            FROM forum_threads ft
+            JOIN members m ON ft.member_id = m.id
+            WHERE ft.id = ?
+        `).get(req.params.id);
+
+        if (!thread) return res.status(404).json({ error: 'Thread not found.' });
+
+        const replies = db.prepare(`
+            SELECT fr.*, m.name as author_name, COALESCE(m.forum_username, m.name) as author_username
+            FROM forum_replies fr
+            JOIN members m ON fr.member_id = m.id
+            WHERE fr.thread_id = ?
+            ORDER BY fr.created_at ASC
+        `).all(req.params.id);
+
+        res.json({ thread, replies });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch thread detail.' });
+    }
+});
+
+// Create New Thread
+app.post('/api/forum/threads', (req, res) => {
+    const { memberId, category, title, content } = req.body;
+    if (!memberId || !category || !title || !content) {
+        return res.status(400).json({ error: 'Category, title, and content are required.' });
+    }
+
+    if (!['General', 'Support'].includes(category)) {
+        return res.status(400).json({ error: 'Category must be either General or Support.' });
+    }
+
+    try {
+        const stmt = db.prepare('INSERT INTO forum_threads (member_id, category, title, content) VALUES (?, ?, ?, ?)');
+        const result = stmt.run(memberId, category, title, content);
+        res.status(201).json({ message: 'Thread created successfully!', threadId: result.lastInsertRowid });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to create thread.' });
+    }
+});
+
+// Post Reply to Thread
+app.post('/api/forum/threads/:id/replies', (req, res) => {
+    const threadId = req.params.id;
+    const { memberId, content } = req.body;
+    if (!memberId || !content) {
+        return res.status(400).json({ error: 'Member ID and content are required.' });
+    }
+
+    try {
+        const thread = db.prepare('SELECT id FROM forum_threads WHERE id = ?').get(threadId);
+        if (!thread) return res.status(404).json({ error: 'Thread not found.' });
+
+        const stmt = db.prepare('INSERT INTO forum_replies (thread_id, member_id, content) VALUES (?, ?, ?)');
+        const result = stmt.run(threadId, memberId, content);
+        res.status(201).json({ message: 'Reply posted successfully!', replyId: result.lastInsertRowid });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to post reply.' });
     }
 });
 

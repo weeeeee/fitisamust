@@ -63,6 +63,7 @@
             </button>
             <ul class="nav-links" id="nav-links">
                 <li><a href="member.html">Dashboard</a></li>
+                <li><a href="forum.html">Forum</a></li>
                 <li><a href="index.html">Log Out</a></li>
             </ul>
         </div>
@@ -119,6 +120,33 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100">Calculate & Save</button>
+            </form>
+        </div>
+
+        <!-- Member Forum Access Credentials Card -->
+        <div class="intake-container" style="margin-top: 30px; margin-bottom: 30px; background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%); border: 1px solid rgba(168, 85, 247, 0.3);">
+            <h2 style="color: #c084fc; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fa-solid fa-user-shield"></i> Forum Access & Credentials
+            </h2>
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 25px; font-size: 0.9rem;">
+                Set your Forum Username and Forum Password to unlock access to the General & Support Community Forums.
+            </p>
+            
+            <form id="forum-credentials-form">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label><i class="fa-solid fa-at"></i> Forum Username</label>
+                        <input type="text" id="forum-username" required placeholder="e.g. FitChamp99" autocomplete="off" />
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fa-solid fa-key"></i> Forum Password</label>
+                        <input type="password" id="forum-password" required placeholder="Enter forum password" autocomplete="new-password" />
+                    </div>
+                </div>
+                <div id="forum-credentials-status" style="display: none; margin-bottom: 15px; padding: 10px; border-radius: 6px; font-size: 0.85rem; text-align: center;"></div>
+                <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(135deg, #38bdf8 0%, #a855f7 100%); border: none; font-weight: bold;">
+                    <i class="fa-solid fa-save"></i> Save Forum Credentials
+                </button>
             </form>
         </div>
 
