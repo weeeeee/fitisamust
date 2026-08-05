@@ -1136,6 +1136,7 @@ async function submitWearableLink(event) {
     if (event) event.preventDefault();
     const brand = document.getElementById('wearable-brand-select').value;
     const nickname = document.getElementById('wearable-account-name').value;
+    const initialWeightInput = document.getElementById('wearable-today-weight') ? document.getElementById('wearable-today-weight').value : '';
     const providerName = nickname ? `${brand} (${nickname})` : brand;
     const btn = document.getElementById('btn-save-wearable');
 
@@ -1148,6 +1149,7 @@ async function submitWearableLink(event) {
         const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
         const memberId = member.id || 3;
 
+        // 1. Register integration
         const res = await fetch(getApiUrl('/api/integrations/connect'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1157,8 +1159,33 @@ async function submitWearableLink(event) {
         const data = await safeJsonParse(res);
         
         if (res.ok) {
-            alert(`✅ ${providerName} linked successfully!\nAutomated weight webhook sync is now active.`);
+            let weightMsg = '';
+            let weightVal = parseFloat(initialWeightInput);
+
+            if (!weightVal || isNaN(weightVal)) {
+                const promptWeight = prompt(`✅ ${providerName} linked successfully!\n\nEnter today's weight reading from ${brand} to log it to your dashboard (lbs):`, "");
+                if (promptWeight) weightVal = parseFloat(promptWeight);
+            }
+
+            if (weightVal && !isNaN(weightVal) && weightVal > 0) {
+                const syncRes = await fetch(getApiUrl('/api/integrations/sync-weight'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ memberId, weight: weightVal, provider: providerName })
+                });
+                if (syncRes.ok) {
+                    weightMsg = `\nToday's weight (${weightVal} lbs) has been logged to your dashboard!`;
+                }
+            }
+
+            alert(`✅ ${providerName} connected!${weightMsg}\nAutomated webhook sync is active.`);
             closeWearableModal();
+            
+            if (document.getElementById('wearable-today-weight')) {
+                document.getElementById('wearable-today-weight').value = '';
+            }
+
+            loadDashboard();
             loadIntegrations();
         } else {
             alert('Failed to link wearable: ' + (data.error || 'Unknown error'));
