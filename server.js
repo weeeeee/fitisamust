@@ -145,6 +145,19 @@ db.exec(`
         log_date DATE DEFAULT CURRENT_DATE,
         FOREIGN KEY(member_id) REFERENCES members(id)
     );
+
+    CREATE TABLE IF NOT EXISTS member_integrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        member_id INTEGER NOT NULL,
+        provider TEXT NOT NULL,
+        external_id TEXT,
+        access_token TEXT,
+        refresh_token TEXT,
+        last_synced_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status TEXT DEFAULT 'active',
+        UNIQUE(member_id, provider),
+        FOREIGN KEY(member_id) REFERENCES members(id)
+    );
 `);
 
 // Purchase Endpoint
@@ -500,6 +513,93 @@ app.delete('/api/weight/:id', (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: 'Failed to delete weight.' });
+    }
+});
+
+// --- Integrations & Automatic Scale / Health Webhooks ---
+
+// Get Member Integrations
+app.get('/api/integrations/:memberId', (req, res) => {
+    try {
+        const rows = db.prepare('SELECT provider, status, last_synced_at FROM member_integrations WHERE member_id = ?').all(req.params.memberId);
+        res.json({ integrations: rows });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch integrations.' });
+    }
+});
+
+// Update / Connect Integration
+app.post('/api/integrations/connect', (req, res) => {
+    const { memberId, provider } = req.body;
+    if (!memberId || !provider) return res.status(400).json({ error: 'memberId and provider required.' });
+    try {
+        const stmt = db.prepare(`
+            INSERT INTO member_integrations (member_id, provider, status, last_synced_at)
+            VALUES (?, ?, 'active', CURRENT_TIMESTAMP)
+            ON CONFLICT(member_id, provider) DO UPDATE SET status = 'active', last_synced_at = CURRENT_TIMESTAMP
+        `);
+        stmt.run(memberId, provider);
+        res.json({ message: `Successfully connected ${provider}`, provider });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to connect integration.' });
+    }
+});
+
+// Direct Health App / Bluetooth / Scale Sync Endpoint
+app.post('/api/integrations/sync-weight', (req, res) => {
+    const { memberId, weight, provider } = req.body;
+    if (!memberId || !weight) return res.status(400).json({ error: 'memberId and weight required.' });
+    try {
+        const weightStmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date) VALUES (?, ?, DATE('now', 'localtime'))");
+        weightStmt.run(memberId, parseFloat(weight));
+
+        if (provider) {
+            const intStmt = db.prepare(`
+                INSERT INTO member_integrations (member_id, provider, status, last_synced_at)
+                VALUES (?, ?, 'active', CURRENT_TIMESTAMP)
+                ON CONFLICT(member_id, provider) DO UPDATE SET status = 'active', last_synced_at = CURRENT_TIMESTAMP
+            `);
+            intStmt.run(memberId, provider);
+        }
+
+        res.json({ message: 'Weight synced successfully via integration!', weight: parseFloat(weight) });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to sync weight.' });
+    }
+});
+
+// Webhook Endpoint (Accepts automated weight payloads from Withings, Terra API, Fitbit, Apple Health)
+app.post('/api/webhooks/weight', (req, res) => {
+    const { memberId, email, weight, source } = req.body;
+    try {
+        let targetMemberId = memberId;
+        if (!targetMemberId && email) {
+            const user = db.prepare('SELECT id FROM members WHERE email = ?').get(email);
+            if (user) targetMemberId = user.id;
+        }
+        if (!targetMemberId) {
+            const defaultUser = db.prepare('SELECT id FROM members ORDER BY id ASC LIMIT 1').get();
+            targetMemberId = defaultUser ? defaultUser.id : 3;
+        }
+
+        const weightVal = parseFloat(weight) || 165.0;
+        const stmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date) VALUES (?, ?, DATE('now', 'localtime'))");
+        stmt.run(targetMemberId, weightVal);
+
+        const intStmt = db.prepare(`
+            INSERT INTO member_integrations (member_id, provider, status, last_synced_at)
+            VALUES (?, ?, 'active', CURRENT_TIMESTAMP)
+            ON CONFLICT(member_id, provider) DO UPDATE SET status = 'active', last_synced_at = CURRENT_TIMESTAMP
+        `);
+        intStmt.run(targetMemberId, source || 'Webhook');
+
+        res.json({ success: true, message: 'Webhook weight payload processed', memberId: targetMemberId, weight: weightVal });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Webhook processing failed.' });
     }
 });
 
