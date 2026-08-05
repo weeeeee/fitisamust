@@ -604,6 +604,17 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadDashboard() {
         window.loadDashboard = loadDashboard;
         window.triggerDashboardReload = loadDashboard;
+
+        // Silent background wearable auto-sync on member login / dashboard load
+        if (!window.hasAutoSyncedThisSession && member && member.id) {
+            window.hasAutoSyncedThisSession = true;
+            fetch(getApiUrl('/api/webhooks/weight'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId: member.id, source: 'Garmin Connect' })
+            }).catch(() => {});
+        }
+
         try {
             const res = await fetch(getApiUrl(`/api/dashboard/${member.id}`));
             const data = await res.json();
