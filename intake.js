@@ -1,3 +1,10 @@
+function getApiUrl(endpoint) {
+    if (window.location.protocol === 'file:' || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port && window.location.port !== '3001')) {
+        return 'http://localhost:3001' + endpoint;
+    }
+    return endpoint;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const member = JSON.parse(localStorage.getItem('fitisamust_member'));
     if (!member || !member.id) {

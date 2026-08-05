@@ -614,6 +614,14 @@ app.post('/api/webhooks/weight', (req, res) => {
     }
 });
 
+// Express Error Handling Middleware to ensure JSON errors are always returned
+app.use((err, req, res, next) => {
+    console.error('API Error:', err);
+    res.status(err.status || 500).json({
+        error: err.message || 'An internal server error occurred.'
+    });
+});
+
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);

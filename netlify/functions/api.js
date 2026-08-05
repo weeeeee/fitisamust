@@ -625,4 +625,12 @@ app.post('/api/webhooks/weight', (req, res) => {
     }
 });
 
+// Express Error Handling Middleware to ensure JSON errors are always returned
+app.use((err, req, res, next) => {
+    console.error('API Error:', err);
+    res.status(err.status || 500).json({
+        error: err.message || 'An internal server error occurred.'
+    });
+});
+
 module.exports.handler = serverless(app);
