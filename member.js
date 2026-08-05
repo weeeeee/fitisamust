@@ -823,27 +823,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('prog-carb-fill').style.width = Math.min((tCarb / Math.max(p.target_carb, 1)) * 100, 100) + '%';
                 document.getElementById('prog-fat-fill').style.width = Math.min((tFat / Math.max(p.target_fat, 1)) * 100, 100) + '%';
 
-                // Chart.js Doughnut Chart
+                // Chart.js Doughnut Chart with transparent remaining goal ring
                 const ctx = document.getElementById('macroChart').getContext('2d');
                 if (macroChartInstance) macroChartInstance.destroy();
 
-                const hasMacros = (tPro + tCarb + tFat) > 0;
+                const targetTotalCal = p.target_cal || ((p.target_pro * 4) + (p.target_carb * 4) + (p.target_fat * 9));
+                const proCal = tPro * 4;
+                const carbCal = tCarb * 4;
+                const fatCal = tFat * 9;
+                const loggedCal = proCal + carbCal + fatCal;
+                const remainingCal = Math.max(0, targetTotalCal - loggedCal);
+
+                const hasMacros = loggedCal > 0;
 
                 macroChartInstance = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
-                        labels: hasMacros ? ['Protein', 'Carbs', 'Fat'] : ['No Food Logged'],
+                        labels: hasMacros ? ['Protein', 'Carbs', 'Fat', 'Remaining Daily Goal'] : ['Remaining Daily Goal'],
                         datasets: [{
-                            data: hasMacros ? [tPro, tCarb, tFat] : [1],
-                            backgroundColor: hasMacros ? ['#ff6384', '#36a2eb', '#ffce56'] : ['rgba(255,255,255,0.1)'],
-                            borderWidth: 0
+                            data: hasMacros ? [proCal, carbCal, fatCal, remainingCal] : [targetTotalCal],
+                            backgroundColor: hasMacros ? 
+                                ['#ff6384', '#36a2eb', '#ffce56', 'rgba(255, 255, 255, 0.08)'] : 
+                                ['rgba(255, 255, 255, 0.08)'],
+                            borderColor: ['#1e293b', '#1e293b', '#1e293b', 'rgba(255, 255, 255, 0.1)'],
+                            borderWidth: 2
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        cutout: '70%',
                         plugins: {
-                            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.7)' } }
+                            legend: { 
+                                position: 'bottom', 
+                                labels: { 
+                                    color: 'rgba(255,255,255,0.85)',
+                                    filter: function(item) {
+                                        return item.text !== 'Remaining Daily Goal';
+                                    }
+                                } 
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        if (label === 'Protein') return `Protein: ${tPro}g (${proCal} kcal)`;
+                                        if (label === 'Carbs') return `Carbs: ${tCarb}g (${carbCal} kcal)`;
+                                        if (label === 'Fat') return `Fat: ${tFat}g (${fatCal} kcal)`;
+                                        if (label === 'Remaining Daily Goal') return `Remaining: ${remainingCal} kcal`;
+                                        return `${label}: ${context.raw}`;
+                                    }
+                                }
+                            }
                         }
                     }
                 });
