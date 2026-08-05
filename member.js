@@ -694,9 +694,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Populate Table (newest first)
                 data.weight_logs.forEach(log => {
+                    let sourceBadge = `<span style="background: rgba(255, 255, 255, 0.08); color: #aaa; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;">
+                        <i class="fa-solid fa-pen-to-square" style="font-size: 0.7rem;"></i> Manual
+                    </span>`;
+                    
+                    const srcLower = (log.source || '').toLowerCase();
+                    if (srcLower.includes('garmin')) {
+                        sourceBadge = `<span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-clock-rotate-left" style="font-size: 0.75rem;"></i> Garmin Connect
+                        </span>`;
+                    } else if (srcLower.includes('apple')) {
+                        sourceBadge = `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-heart-pulse" style="font-size: 0.75rem;"></i> Apple Health
+                        </span>`;
+                    } else if (srcLower.includes('fitbit')) {
+                        sourceBadge = `<span style="background: rgba(45, 212, 191, 0.2); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-person-walk" style="font-size: 0.75rem;"></i> Fitbit
+                        </span>`;
+                    } else if (srcLower.includes('withings')) {
+                        sourceBadge = `<span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-scale-balanced" style="font-size: 0.75rem;"></i> Withings
+                        </span>`;
+                    } else if (log.source && log.source !== 'Manual Input') {
+                        sourceBadge = `<span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-arrows-rotate" style="font-size: 0.75rem;"></i> ${log.source}
+                        </span>`;
+                    }
+
                     weightTbody.innerHTML += `<tr>
                         <td>${log.log_date}</td>
-                        <td>${log.weight}</td>
+                        <td style="font-weight: 600;">${log.weight} lbs</td>
+                        <td>${sourceBadge}</td>
                         <td style="text-align: right;">
                             <button onclick="editWeight(${log.id})" style="background: none; border: none; color: #36a2eb; cursor: pointer; font-size: 1.1rem; margin-right: 15px;" title="Edit weight">
                                 <i class="fa-solid fa-pen-to-square"></i>

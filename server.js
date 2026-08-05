@@ -493,10 +493,10 @@ app.put('/api/food/:id', (req, res) => {
 
 // Log Weight
 app.post('/api/weight', (req, res) => {
-    const { memberId, weight } = req.body;
+    const { memberId, weight, source } = req.body;
     try {
-        const stmt = db.prepare('INSERT INTO weight_logs (member_id, weight) VALUES (?, ?)');
-        stmt.run(memberId, weight);
+        const stmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date, source) VALUES (?, ?, DATE('now', 'localtime'), ?)");
+        stmt.run(memberId, weight, source || 'Manual Input');
         res.json({ message: 'Weight logged successfully' });
     } catch (err) {
         console.error(err.message);
@@ -563,8 +563,8 @@ app.post('/api/integrations/sync-weight', (req, res) => {
     const { memberId, weight, provider } = req.body;
     if (!memberId || !weight) return res.status(400).json({ error: 'memberId and weight required.' });
     try {
-        const weightStmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date) VALUES (?, ?, DATE('now', 'localtime'))");
-        weightStmt.run(memberId, parseFloat(weight));
+        const weightStmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date, source) VALUES (?, ?, DATE('now', 'localtime'), ?)");
+        weightStmt.run(memberId, parseFloat(weight), provider || 'Wearable Sync');
 
         if (provider) {
             const intStmt = db.prepare(`
@@ -608,8 +608,8 @@ app.post('/api/webhooks/weight', (req, res) => {
         }
 
         if (weightVal && weightVal > 0) {
-            const stmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date) VALUES (?, ?, DATE('now', 'localtime'))");
-            stmt.run(targetMemberId, weightVal);
+            const stmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date, source) VALUES (?, ?, DATE('now', 'localtime'), ?)");
+            stmt.run(targetMemberId, weightVal, source || 'Garmin Connect');
         }
 
         const intStmt = db.prepare(`
