@@ -736,13 +736,31 @@ function parseScaleWeightPayload(req) {
         }
     }
 
+    // Check Google Fit / Health Connect dataset points
+    if (!weightVal && body.point && Array.isArray(body.point) && body.point.length > 0) {
+        const p = body.point[0];
+        if (p.value && Array.isArray(p.value) && p.value.length > 0) {
+            const val = p.value[0];
+            if (val.fpVal) {
+                weightVal = val.fpVal * 2.20462;
+            }
+        }
+    }
+    if (!weightVal && body.weight && typeof body.weight === 'object') {
+        if (body.weight.inPounds || body.weight.in_lbs) {
+            weightVal = parseFloat(body.weight.inPounds || body.weight.in_lbs);
+        } else if (body.weight.inKilograms || body.weight.in_kg) {
+            weightVal = parseFloat(body.weight.inKilograms || body.weight.in_kg) * 2.20462;
+        }
+    }
+
     // Direct properties
     if (!weightVal) {
         if (body.weightInGrams || query.weightInGrams) {
             weightVal = parseFloat(body.weightInGrams || query.weightInGrams) / 453.59237;
         } else if (body.weightInKg || body.weight_kg || query.weightInKg) {
             weightVal = parseFloat(body.weightInKg || body.weight_kg || query.weightInKg) * 2.20462;
-        } else if (body.weight_lbs || body.weight || query.weight) {
+        } else if (body.weight_lbs || (body.weight && typeof body.weight !== 'object') || query.weight) {
             let w = parseFloat(body.weight_lbs || body.weight || query.weight);
             const unit = (body.unit || query.unit || '').toLowerCase();
             if (unit === 'kg' || unit === 'kilograms') {

@@ -1141,7 +1141,7 @@ async function syncHealthAppModal(providerName) {
         providerName = localStorage.getItem('fitisamust_primary_integration') || 'Google Fit / Health Connect';
     }
     const modal = document.getElementById('wearable-link-modal');
-    let defaultWeight = '217.0';
+    let defaultWeight = '';
     if (window.currentWeightLogs && window.currentWeightLogs.length > 0) {
         defaultWeight = String(window.currentWeightLogs[0].weight);
     }
@@ -1385,7 +1385,7 @@ function connectGarminScaleModal() {
     const memberId = member.id || 3;
     const webhookUrl = window.location.origin + '/api/webhooks/garmin?memberId=' + memberId;
 
-    let defaultWeight = '217.0';
+    let defaultWeight = '';
     if (window.currentWeightLogs && window.currentWeightLogs.length > 0) {
         defaultWeight = String(window.currentWeightLogs[0].weight);
     }
