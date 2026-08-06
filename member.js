@@ -525,49 +525,54 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDashboard();
 
 
-    document.getElementById('weight-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const weightVal = parseFloat(document.getElementById('weight-value').value);
-        const id = document.getElementById('edit-weight-id').value;
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? getApiUrl(`/api/weight/${id}`) : getApiUrl('/api/weight');
-        
-        try {
-            const res = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ memberId: member.id, weight: weightVal, source: 'Manual Input' })
-            });
-            const data = await safeJsonParse(res);
-            if (!res.ok) {
-                alert('Error updating weight: ' + (data.error || 'Failed'));
+    const weightForm = document.getElementById('weight-form');
+    if (weightForm) {
+        weightForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const weightVal = parseFloat(document.getElementById('weight-value').value);
+            const id = document.getElementById('edit-weight-id').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? getApiUrl(`/api/weight/${id}`) : getApiUrl('/api/weight');
+            
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ memberId: member.id, weight: weightVal, source: 'Manual Input' })
+                });
+                const data = await safeJsonParse(res);
+                if (!res.ok) {
+                    alert('Error updating weight: ' + (data.error || 'Failed'));
+                    return;
+                }
+            } catch (err) {
+                alert('Error updating weight: ' + err.message);
                 return;
             }
-        } catch (err) {
-            alert('Error updating weight: ' + err.message);
-            return;
-        }
-        
-        window.cancelWeightEdit();
-        loadDashboard();
-    });
+            
+            window.cancelWeightEdit();
+            loadDashboard();
+        });
+    }
 
-    document.getElementById('food-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const mealVal = document.getElementById('food-meal').value;
-        window.lastSelectedMeal = mealVal;
-        localStorage.setItem('fitisamust_last_meal', mealVal);
+    const foodForm = document.getElementById('food-form');
+    if (foodForm) {
+        foodForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mealVal = document.getElementById('food-meal').value;
+            window.lastSelectedMeal = mealVal;
+            localStorage.setItem('fitisamust_last_meal', mealVal);
 
-        const foodObj = {
-            id: document.getElementById('edit-food-id').value || Date.now(),
-            member_id: member.id,
-            meal_type: mealVal,
-            food_name: document.getElementById('food-name').value,
-            calories: parseInt(document.getElementById('food-cal').value, 10) || 0,
-            protein: parseInt(document.getElementById('food-pro').value, 10) || 0,
-            carbs: parseInt(document.getElementById('food-carb').value, 10) || 0,
-            fat: parseInt(document.getElementById('food-fat').value, 10) || 0
-        };
+            const foodObj = {
+                id: document.getElementById('edit-food-id').value || Date.now(),
+                member_id: member.id,
+                meal_type: mealVal,
+                food_name: document.getElementById('food-name').value,
+                calories: parseInt(document.getElementById('food-cal').value, 10) || 0,
+                protein: parseInt(document.getElementById('food-pro').value, 10) || 0,
+                carbs: parseInt(document.getElementById('food-carb').value, 10) || 0,
+                fat: parseInt(document.getElementById('food-fat').value, 10) || 0
+            };
 
         const id = document.getElementById('edit-food-id').value;
         const method = id ? 'PUT' : 'POST';
@@ -610,7 +615,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         cancelEdit();
         loadDashboard();
-    });
+        });
+    }
 
     // Helper to reload everything
     async function loadDashboard() {
@@ -1131,13 +1137,42 @@ async function scanBluetoothScale() {
 
 // 2. Garmin Connect / Health App Instant & Background Cloud Sync
 async function syncHealthAppModal(providerName = 'Garmin Connect') {
-    const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
-    const memberId = member.id || 3;
-
+    const modal = document.getElementById('wearable-link-modal');
     let defaultWeight = '217.0';
     if (window.currentWeightLogs && window.currentWeightLogs.length > 0) {
         defaultWeight = String(window.currentWeightLogs[0].weight);
     }
+
+    if (modal) {
+        const select = document.getElementById('wearable-brand-select');
+        if (select) {
+            let matchedOption = false;
+            for (let opt of select.options) {
+                if (opt.value.toLowerCase().includes(providerName.toLowerCase()) || providerName.toLowerCase().includes(opt.value.toLowerCase())) {
+                    select.value = opt.value;
+                    matchedOption = true;
+                    break;
+                }
+            }
+            if (!matchedOption && select.options.length > 0) {
+                select.value = select.options[0].value;
+            }
+        }
+
+        const weightInput = document.getElementById('wearable-today-weight');
+        if (weightInput) {
+            weightInput.value = defaultWeight;
+        }
+
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            if (weightInput) weightInput.focus();
+        }, 100);
+        return;
+    }
+
+    const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
+    const memberId = member.id || 3;
 
     const input = prompt(`🔄 ${providerName} Cloud Sync\n\nEnter current weight reading from your ${providerName} scale / app (lbs):`, defaultWeight);
     if (!input || isNaN(parseFloat(input))) return;
@@ -1313,7 +1348,7 @@ async function loadIntegrations() {
                             <button onclick="triggerWebhookTest()" class="btn btn-outline btn-sm" style="font-size: 0.75rem; padding: 4px 10px;">
                                 <i class="fa-solid fa-paper-plane"></i> Test Webhook Sync
                             </button>
-                        </div>
+                        </div>`;
                 }
             }
         }
@@ -1326,7 +1361,7 @@ async function loadIntegrations() {
 function connectGarminScaleModal() {
     const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
     const memberId = member.id || 3;
-    const webhookUrl = `${window.location.origin}/api/webhooks/garmin?memberId=${memberId}`;
+    const webhookUrl = window.location.origin + '/api/webhooks/garmin?memberId=' + memberId;
 
     let defaultWeight = '217.0';
     if (window.currentWeightLogs && window.currentWeightLogs.length > 0) {
@@ -1334,9 +1369,9 @@ function connectGarminScaleModal() {
     }
 
     const input = prompt(
-        `📡 Garmin Connect Scale Webhook & Cloud Sync\n\n` +
-        `Your Personal Garmin Webhook Listener URL:\n${webhookUrl}\n\n` +
-        `Enter scale reading from your Garmin Connect app / Index Scale (lbs):`,
+        '📡 Garmin Connect Scale Webhook & Cloud Sync\n\n' +
+        'Your Personal Garmin Webhook Listener URL:\n' + webhookUrl + '\n\n' +
+        'Enter scale reading from your Garmin Connect app / Index Scale (lbs):',
         defaultWeight
     );
 
@@ -1353,7 +1388,7 @@ function connectGarminScaleModal() {
             provider: 'Garmin Connect'
         })
     }).then(res => res.json()).then(data => {
-        alert(`✅ Synced with Garmin Connect!\nLogged Scale Weight: ${syncedWeight} lbs`);
+        alert('✅ Synced with Garmin Connect!\nLogged Scale Weight: ' + syncedWeight + ' lbs');
         if (window.triggerDashboardReload) window.triggerDashboardReload();
         loadIntegrations();
     }).catch(err => {
