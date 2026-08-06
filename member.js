@@ -1136,7 +1136,10 @@ async function scanBluetoothScale() {
 }
 
 // 2. Garmin Connect / Health App Instant & Background Cloud Sync
-async function syncHealthAppModal(providerName = 'Garmin Connect') {
+async function syncHealthAppModal(providerName) {
+    if (!providerName) {
+        providerName = localStorage.getItem('fitisamust_primary_integration') || 'Google Fit / Health Connect';
+    }
     const modal = document.getElementById('wearable-link-modal');
     let defaultWeight = '217.0';
     if (window.currentWeightLogs && window.currentWeightLogs.length > 0) {
@@ -1333,6 +1336,24 @@ async function loadIntegrations() {
         if (res.ok) {
             const data = await safeJsonParse(res);
             if (data.integrations && data.integrations.length > 0) {
+                const primaryProvider = data.integrations[0].provider;
+                localStorage.setItem('fitisamust_primary_integration', primaryProvider);
+
+                const primaryBtn = document.getElementById('btn-sync-primary-device');
+                if (primaryBtn) {
+                    if (primaryProvider.toLowerCase().includes('google')) {
+                        primaryBtn.innerHTML = '<i class="fa-brands fa-google"></i> Sync Google Health / Fit';
+                        primaryBtn.style.borderColor = '#38bdf8';
+                        primaryBtn.style.color = '#38bdf8';
+                    } else if (primaryProvider.toLowerCase().includes('garmin')) {
+                        primaryBtn.innerHTML = '<i class="fa-solid fa-sync"></i> Sync Garmin Connect';
+                        primaryBtn.style.borderColor = '#a855f7';
+                        primaryBtn.style.color = '#a855f7';
+                    } else {
+                        primaryBtn.innerHTML = '<i class="fa-solid fa-sync"></i> Sync ' + primaryProvider;
+                    }
+                }
+
                 const banner = document.getElementById('integration-status-banner');
                 if (banner) {
                     const activeNames = data.integrations.map(i => i.provider).join(', ');
