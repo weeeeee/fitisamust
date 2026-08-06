@@ -1259,19 +1259,18 @@ async function submitWearableLink(event) {
         if (res.ok) {
             localStorage.setItem('fitisamust_primary_integration', brand);
             let weightVal = parseFloat(initialWeightInput);
+            if (!weightVal || isNaN(weightVal)) {
+                const inputPrompt = prompt(`🔄 ${providerName} Scale Sync\n\nEnter current weight reading from your ${providerName} scale / app (lbs):`);
+                if (inputPrompt && !isNaN(parseFloat(inputPrompt))) {
+                    weightVal = parseFloat(inputPrompt);
+                }
+            }
 
             if (weightVal && !isNaN(weightVal) && weightVal > 0) {
                 await fetch(getApiUrl('/api/integrations/sync-weight'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ memberId, weight: weightVal, provider: providerName })
-                });
-            } else {
-                // Automated background cloud sync from Garmin Connect
-                await fetch(getApiUrl('/api/webhooks/weight'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ memberId, source: providerName + ' Auto Sync' })
                 });
             }
 
