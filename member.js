@@ -757,16 +757,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.loadDashboard = loadDashboard;
         window.triggerDashboardReload = loadDashboard;
 
-        // Silent background wearable auto-sync on member login / dashboard load
-        if (!window.hasAutoSyncedThisSession && member && member.id) {
-            window.hasAutoSyncedThisSession = true;
-            fetch(getApiUrl('/api/webhooks/weight'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ memberId: member.id, source: 'Garmin Connect' })
-            }).catch(() => {});
-        }
-
         let data = {};
         const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
 
