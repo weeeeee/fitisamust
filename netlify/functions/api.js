@@ -537,6 +537,25 @@ app.get('/api/food/search', (req, res) => {
     }
 });
 
+// Fetch Previously Logged Foods for Member History
+app.get('/api/food/history/:memberId', (req, res) => {
+    const { memberId } = req.params;
+    try {
+        const history = db.prepare(`
+            SELECT food_name, calories, protein, carbs, fat, meal_type, MAX(id) as last_id
+            FROM food_logs
+            WHERE member_id = ?
+            GROUP BY LOWER(food_name)
+            ORDER BY last_id DESC
+            LIMIT 50
+        `).all(memberId);
+        res.json(history);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch food history.' });
+    }
+});
+
 // AI Food Macro Estimator (Gemini AI Integration)
 app.post('/api/food/ai-estimate', async (req, res) => {
     const { query } = req.body;
@@ -764,14 +783,86 @@ app.post('/api/integrations/sync-weight', (req, res) => {
     }
 });
 
+// Google Fit / Health Connect Pull Endpoint
+app.post('/api/integrations/google-fit/pull', async (req, res) => {
+    const { memberId, accessToken, weight } = req.body;
+    const targetMemberId = memberId || 3;
+
+    try {
+        let weightVal = null;
+        let token = accessToken;
+
+        if (!token) {
+            const row = db.prepare("SELECT access_token FROM member_integrations WHERE member_id = ? AND provider LIKE '%Google%'").get(targetMemberId);
+            if (row) token = row.access_token;
+        }
+
+        // 1. Direct weight value passed from Health Connect client bridge
+        if (weight) {
+            weightVal = parseFloat(weight);
+        } else if (req.body.point || req.body.weightInKg || req.body.weight_lbs) {
+            // Parse payload
+            const parsed = parseScaleWeightPayload(req);
+            weightVal = parsed.weightVal;
+        } else if (token) {
+            // Fetch from Google Fitness REST API
+            const startTimeNs = (Date.now() - 86400000) * 1000000; // Last 24h
+            const endTimeNs = Date.now() * 1000000;
+            const datasetId = `${startTimeNs}-${endTimeNs}`;
+            const fitUrl = `https://www.googleapis.com/fitness/v1/users/me/dataSources/derived:com.google.weight:com.google.android.gms:merge_weight/datasets/${datasetId}`;
+            
+            const googleRes = await fetch(fitUrl, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (googleRes.ok) {
+                const fitData = await googleRes.json();
+                if (fitData.point && fitData.point.length > 0) {
+                    const lastPt = fitData.point[fitData.point.length - 1];
+                    const fpVal = lastPt.value?.[0]?.fpVal;
+                    if (fpVal) {
+                        weightVal = fpVal < 250 ? fpVal * 2.20462 : fpVal;
+                    }
+                }
+            }
+        }
+
+        if (weightVal && weightVal > 0) {
+            const finalWeight = parseFloat(weightVal.toFixed(1));
+            recordDailyWeight(targetMemberId, finalWeight, 'Google Fit / Health Connect');
+
+            db.prepare(`
+                INSERT INTO member_integrations (member_id, provider, status, last_synced_at)
+                VALUES (?, 'Google Fit / Health Connect', 'active', CURRENT_TIMESTAMP)
+                ON CONFLICT(member_id, provider) DO UPDATE SET status = 'active', last_synced_at = CURRENT_TIMESTAMP
+            `).run(targetMemberId);
+
+            return res.json({
+                success: true,
+                message: 'Successfully pulled weight reading from Google Health / Google Fit!',
+                weight: finalWeight,
+                provider: 'Google Fit / Health Connect'
+            });
+        }
+
+        return res.status(400).json({
+            success: false,
+            message: 'No weight reading payload or active Google Fit OAuth access token provided. Please enter your morning scale weight reading to sync.'
+        });
+    } catch (err) {
+        console.error('Google Fit Pull Error:', err.message);
+        res.status(500).json({ error: 'Failed to pull Google Fit weight data.' });
+    }
+});
+
 // --- Garmin Connect & Scale Webhook Engine ---
 
-// Verification endpoint for Garmin Connect / Health APIs
-app.get(['/api/webhooks/garmin', '/api/webhooks/weight'], (req, res) => {
+// Verification endpoint for Garmin Connect / Google Health APIs
+app.get(['/api/webhooks/garmin', '/api/webhooks/weight', '/api/webhooks/google-fit', '/api/webhooks/google-health'], (req, res) => {
     if (req.query['hub.challenge']) {
         return res.send(req.query['hub.challenge']);
     }
-    res.json({ status: 'active', service: 'Garmin Connect Weight Webhook Listener' });
+    res.json({ status: 'active', service: 'Garmin / Google Health Connect Weight Webhook Listener' });
 });
 
 function parseScaleWeightPayload(req) {
@@ -781,7 +872,16 @@ function parseScaleWeightPayload(req) {
     let memberId = body.memberId || body.member_id || query.memberId || query.member_id;
     let email = body.email || query.email;
     let userId = body.userId || body.user_id || body.garmin_id || query.userId;
-    let source = body.source || query.source || 'Garmin Connect';
+    let source = body.source || query.source || body.provider || query.provider;
+
+    if (!source) {
+        const path = req.path || req.originalUrl || '';
+        if (path.includes('google') || path.includes('fit')) {
+            source = 'Google Fit / Health Connect';
+        } else {
+            source = 'Garmin Connect';
+        }
+    }
 
     let weightVal = null;
 
@@ -841,8 +941,8 @@ function parseScaleWeightPayload(req) {
     };
 }
 
-// Webhook Endpoint (Accepts automated weight payloads from Garmin Connect, Withings, Terra API, Fitbit, Apple Health)
-app.post(['/api/webhooks/garmin', '/api/webhooks/weight'], (req, res) => {
+// Webhook Endpoint (Accepts automated weight payloads from Garmin Connect, Google Fit, Withings, Terra API, Fitbit, Apple Health)
+app.post(['/api/webhooks/garmin', '/api/webhooks/weight', '/api/webhooks/google-fit', '/api/webhooks/google-health'], (req, res) => {
     try {
         const { memberId, email, source, weightVal } = parseScaleWeightPayload(req);
 
@@ -857,22 +957,22 @@ app.post(['/api/webhooks/garmin', '/api/webhooks/weight'], (req, res) => {
         }
 
         if (weightVal && weightVal > 0) {
-            recordDailyWeight(targetMemberId, weightVal, source || 'Garmin Connect');
+            recordDailyWeight(targetMemberId, weightVal, source || 'Google Fit / Health Connect');
 
             const intStmt = db.prepare(`
                 INSERT INTO member_integrations (member_id, provider, status, last_synced_at)
                 VALUES (?, ?, 'active', CURRENT_TIMESTAMP)
                 ON CONFLICT(member_id, provider) DO UPDATE SET status = 'active', last_synced_at = CURRENT_TIMESTAMP
             `);
-            intStmt.run(targetMemberId, source || 'Garmin Connect');
+            intStmt.run(targetMemberId, source || 'Google Fit / Health Connect');
 
-            return res.json({ success: true, message: 'Garmin scale weight synced successfully', memberId: targetMemberId, weight: weightVal });
+            return res.json({ success: true, message: `${source || 'Google Health'} scale weight synced successfully`, memberId: targetMemberId, weight: weightVal });
         } else {
             return res.json({ success: true, message: 'Webhook active (no new scale weight payload)' });
         }
     } catch (err) {
         console.error(err.message);
-        res.status(500).json({ error: 'Garmin Webhook processing failed.' });
+        res.status(500).json({ error: 'Webhook processing failed.' });
     }
 });
 

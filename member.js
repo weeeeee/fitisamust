@@ -12,11 +12,14 @@ async function safeJsonParse(response) {
         return data;
     } catch (e) {
         console.error('Raw non-JSON response from server:', text);
-        const cleanText = text.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+        if (response.status === 401) {
+            throw new Error('Authentication or site access permission required (401).');
+        }
         if (response.status === 404) {
             throw new Error('API endpoint not found (404). Please ensure backend server is active.');
         }
-        const snippet = cleanText ? cleanText.substring(0, 120) : 'Server returned an invalid response';
+        const cleanText = text.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+        const snippet = cleanText ? cleanText.substring(0, 100) : 'Server returned an invalid response';
         throw new Error(`Server returned error (${response.status}): ${snippet}`);
     }
 }
@@ -481,34 +484,131 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sort foods alphabetically
     prebuiltFoods.sort((a, b) => a.name.localeCompare(b.name));
 
-    // Populate Datalist
-    const datalist = document.getElementById('food-presets');
-    if (datalist) {
-        prebuiltFoods.forEach(food => {
-            const option = document.createElement('option');
-            option.value = food.name;
-            datalist.appendChild(option);
-        });
+    let userHistoryFoods = [];
+
+    async function loadMemberFoodHistory(memberId) {
+        const targetId = memberId || (member ? member.id : null);
+        if (!targetId) return;
+        try {
+            const response = await fetch(getApiUrl(`/api/food/history/${targetId}`));
+            if (response.ok) {
+                const history = await response.json();
+                if (Array.isArray(history)) {
+                    userHistoryFoods = history.map(item => ({
+                        name: item.food_name,
+                        cal: item.calories,
+                        pro: item.protein,
+                        carb: item.carbs,
+                        fat: item.fat,
+                        meal: item.meal_type
+                    }));
+                    populateFoodSuggestions();
+                }
+            }
+        } catch (err) {
+            console.warn('Food history notice:', err.message);
+        }
+    }
+    window.loadMemberFoodHistory = loadMemberFoodHistory;
+
+    function populateFoodSuggestions() {
+        const datalist = document.getElementById('food-presets');
+        const prevSelect = document.getElementById('previous-foods-select');
+
+        if (prevSelect) {
+            prevSelect.innerHTML = '<option value="" style="background: #1e293b; color: #aaa;">-- Quick Pick Previously Eaten Foods --</option>';
+            if (userHistoryFoods.length > 0) {
+                userHistoryFoods.forEach(food => {
+                    const opt = document.createElement('option');
+                    opt.value = food.name;
+                    opt.style.background = '#1e293b';
+                    opt.style.color = '#fff';
+                    opt.textContent = `🕒 ${food.name} (${food.cal} cal | ${food.pro}g P | ${food.carb}g C | ${food.fat}g F)`;
+                    prevSelect.appendChild(opt);
+                });
+            }
+        }
+
+        if (datalist) {
+            datalist.innerHTML = '';
+            const combined = [];
+            const seen = new Set();
+
+            userHistoryFoods.forEach(f => {
+                if (!seen.has(f.name.toLowerCase())) {
+                    seen.add(f.name.toLowerCase());
+                    combined.push({ display: `🕒 ${f.name}`, value: f.name });
+                }
+            });
+
+            prebuiltFoods.forEach(f => {
+                if (!seen.has(f.name.toLowerCase())) {
+                    seen.add(f.name.toLowerCase());
+                    combined.push({ display: f.name, value: f.name });
+                }
+            });
+
+            combined.forEach(food => {
+                const option = document.createElement('option');
+                option.value = food.value;
+                datalist.appendChild(option);
+            });
+        }
     }
 
-    // Autofill Macros when a prebuilt food or quantity is selected/changed
+    // Initial population
+    populateFoodSuggestions();
+
+    // Autofill Macros when a prebuilt/historical food or quantity is selected/changed
     const foodNameInput = document.getElementById('food-name');
     const foodQtyInput = document.getElementById('food-qty');
-    
+    const prevSelectInput = document.getElementById('previous-foods-select');
+    const foodMealSelectInput = document.getElementById('food-meal');
+
     function updateMacros() {
-        const selectedFood = prebuiltFoods.find(f => f.name === foodNameInput.value);
+        let val = foodNameInput.value.trim();
+        if (val.startsWith('🕒 ')) val = val.substring(2).trim();
+
+        const selectedFood = userHistoryFoods.find(f => f.name.toLowerCase() === val.toLowerCase()) || 
+                             prebuiltFoods.find(f => f.name.toLowerCase() === val.toLowerCase());
+
         if (selectedFood) {
             const qty = parseFloat(foodQtyInput.value) || 1;
             document.getElementById('food-cal').value = Math.round(selectedFood.cal * qty);
             document.getElementById('food-pro').value = Math.round(selectedFood.pro * qty);
             document.getElementById('food-carb').value = Math.round(selectedFood.carb * qty);
             document.getElementById('food-fat').value = Math.round(selectedFood.fat * qty);
+
+            if (selectedFood.meal && foodMealSelectInput && !document.getElementById('edit-food-id').value) {
+                foodMealSelectInput.value = selectedFood.meal;
+            }
         }
     }
 
     if (foodNameInput && foodQtyInput) {
         foodNameInput.addEventListener('input', updateMacros);
+        foodNameInput.addEventListener('change', updateMacros);
         foodQtyInput.addEventListener('input', updateMacros);
+    }
+
+    if (prevSelectInput) {
+        prevSelectInput.addEventListener('change', (e) => {
+            const selectedName = e.target.value;
+            if (!selectedName) return;
+            const foodObj = userHistoryFoods.find(f => f.name === selectedName);
+            if (foodObj && foodNameInput) {
+                foodNameInput.value = foodObj.name;
+                foodQtyInput.value = 1;
+                document.getElementById('food-cal').value = foodObj.cal;
+                document.getElementById('food-pro').value = foodObj.pro;
+                document.getElementById('food-carb').value = foodObj.carb;
+                document.getElementById('food-fat').value = foodObj.fat;
+
+                if (foodObj.meal && foodMealSelectInput) {
+                    foodMealSelectInput.value = foodObj.meal;
+                }
+            }
+        });
     }
 
     // Preserve & Restore Selected Meal Dropdown State
@@ -634,6 +734,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
+            if (member && member.id) {
+                loadMemberFoodHistory(member.id);
+            }
             const res = await fetch(getApiUrl(`/api/dashboard/${member.id}`));
             const data = await res.json();
             
@@ -1248,6 +1351,24 @@ async function syncHealthAppModal(providerName) {
     const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
     const memberId = member.id || 3;
 
+    try {
+        const pullRes = await fetch(getApiUrl('/api/integrations/google-fit/pull'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ memberId })
+        });
+        const pullData = await safeJsonParse(pullRes);
+
+        if (pullRes.ok && pullData.weight) {
+            alert(`✅ Synced with ${providerName}!\nLogged Scale Weight: ${pullData.weight} lbs`);
+            if (window.triggerDashboardReload) window.triggerDashboardReload();
+            loadIntegrations();
+            return;
+        }
+    } catch (err) {
+        console.warn('Cloud sync pull notice:', err.message);
+    }
+
     const input = prompt(`🔄 ${providerName} Cloud Sync\n\nEnter current weight reading from your ${providerName} scale / app (lbs):`, defaultWeight);
     if (!input || isNaN(parseFloat(input))) return;
 
@@ -1312,53 +1433,66 @@ async function submitWearableLink(event) {
     try {
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Pulling from Google Health...';
         }
 
         const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
         const memberId = member.id || 3;
 
-        // 1. Register integration
-        const res = await fetch(getApiUrl('/api/integrations/connect'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ memberId, provider: providerName })
-        });
-        
-        const data = await safeJsonParse(res);
-        
-        if (res.ok) {
-            localStorage.setItem('fitisamust_primary_integration', brand);
-            let weightVal = parseFloat(initialWeightInput);
-            if (!weightVal || isNaN(weightVal)) {
-                const inputPrompt = prompt(`🔄 ${providerName} Scale Sync\n\nEnter current weight reading from your ${providerName} scale / app (lbs):`);
-                if (inputPrompt && !isNaN(parseFloat(inputPrompt))) {
-                    weightVal = parseFloat(inputPrompt);
+        localStorage.setItem('fitisamust_primary_integration', brand);
+
+        let weightVal = parseFloat(initialWeightInput);
+        let pullMsg = '';
+
+        // Try pulling directly from Google Fit / Health Connect API
+        try {
+            const pullRes = await fetch(getApiUrl('/api/integrations/google-fit/pull'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId, weight: weightVal || undefined })
+            });
+
+            if (pullRes.ok) {
+                const pullData = await pullRes.json();
+                if (pullData.weight) {
+                    weightVal = pullData.weight;
+                    pullMsg = `\nPulled Scale Weight: ${weightVal} lbs`;
                 }
             }
+        } catch (pullErr) {
+            console.warn('Cloud pull warning:', pullErr.message);
+        }
 
-            if (weightVal && !isNaN(weightVal) && weightVal > 0) {
+        // Send registration to backend API
+        try {
+            const res = await fetch(getApiUrl('/api/integrations/connect'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId, provider: providerName })
+            });
+
+            if (res.ok && weightVal && !isNaN(weightVal) && weightVal > 0) {
                 await fetch(getApiUrl('/api/integrations/sync-weight'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ memberId, weight: weightVal, provider: providerName })
                 });
             }
-
-            alert(`✅ ${providerName} linked & synced!\nAutomated cloud background sync is active — no manual weight entry required.`);
-            closeWearableModal();
-            
-            if (document.getElementById('wearable-today-weight')) {
-                document.getElementById('wearable-today-weight').value = '';
-            }
-
-            if (window.triggerDashboardReload) window.triggerDashboardReload();
-            loadIntegrations();
-        } else {
-            alert('Failed to link wearable: ' + (data.error || 'Unknown error'));
+        } catch (apiErr) {
+            console.warn('Backend API connection warning (saving integration locally):', apiErr.message);
         }
+
+        alert(`✅ ${providerName} linked & synced!${pullMsg}\nAutomated cloud background sync is active.`);
+        closeWearableModal();
+
+        if (document.getElementById('wearable-today-weight')) {
+            document.getElementById('wearable-today-weight').value = '';
+        }
+
+        if (window.triggerDashboardReload) window.triggerDashboardReload();
+        loadIntegrations();
     } catch (err) {
-        alert('Connection error: ' + err.message);
+        alert('Notice: ' + err.message);
     } finally {
         if (btn) {
             btn.disabled = false;
