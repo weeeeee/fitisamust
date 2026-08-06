@@ -164,16 +164,30 @@ async function sendPasswordRecoveryEmail(recipientEmail, tempPassword, resetToke
 // Initialize SQLite Database (Netlify Serverless workaround)
 const dbPath = path.join('/tmp', 'database.sqlite');
 try {
-    const bundledDb = path.join(__dirname, '../../database.sqlite');
-    if (fs.existsSync(bundledDb)) {
-        const bundledStat = fs.statSync(bundledDb);
+    const possiblePaths = [
+        path.join(__dirname, '../../database.sqlite'),
+        path.join(__dirname, '../database.sqlite'),
+        path.join(__dirname, 'database.sqlite'),
+        path.join(process.cwd(), 'database.sqlite')
+    ];
+    let foundBundledDb = null;
+    for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+            foundBundledDb = p;
+            break;
+        }
+    }
+
+    if (foundBundledDb) {
+        const bundledStat = fs.statSync(foundBundledDb);
         const tmpStat = fs.existsSync(dbPath) ? fs.statSync(dbPath) : null;
-        if (!tmpStat || bundledStat.mtimeMs > tmpStat.mtimeMs) {
-            fs.copyFileSync(bundledDb, dbPath);
+        if (!tmpStat || tmpStat.size === 0 || bundledStat.mtimeMs > tmpStat.mtimeMs) {
+            fs.copyFileSync(foundBundledDb, dbPath);
+            console.log(`Copied database from ${foundBundledDb} to ${dbPath}`);
         }
     }
 } catch (e) {
-    console.error("DB init error", e);
+    console.error("DB init copy error:", e);
 }
 const db = new Database(dbPath, { verbose: console.log });
 
