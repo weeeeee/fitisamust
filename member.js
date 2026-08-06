@@ -730,7 +730,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (res.ok) {
                     const resData = await res.json();
-                    if (resData.id) foodObj.id = resData.id;
+                    if (resData.id) {
+                        const oldId = foodObj.id;
+                        foodObj.id = resData.id;
+                        
+                        // Update LocalStorage to replace the temporary ID with the real DB ID!
+                        try {
+                            const key = `fitisamust_food_logs_${member.id}_${todayStr}`;
+                            let logs = JSON.parse(localStorage.getItem(key) || '[]');
+                            logs = logs.map(item => item.id == oldId ? { ...item, id: resData.id } : item);
+                            localStorage.setItem(key, JSON.stringify(logs));
+                        } catch (e) {}
+                    }
                 }
             } catch (err) {
                 console.warn('Backend API food log sync warning:', err.message);
@@ -1011,13 +1022,34 @@ document.addEventListener('DOMContentLoaded', () => {
             try { localCachedLogs = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
 
             const logMap = new Map();
-            (localCachedLogs || []).forEach(item => {
-                const key = item.id ? String(item.id) : `${item.meal_type}_${item.food_name}_${item.calories}`;
-                logMap.set(key, item);
-            });
+            const timeStampThreshold = 1000000000000;
+            
+            // Add server logs first (source of truth)
             (data.food_logs || []).forEach(item => {
-                const key = item.id ? String(item.id) : `${item.meal_type}_${item.food_name}_${item.calories}`;
-                logMap.set(key, item);
+                logMap.set(String(item.id), item);
+            });
+            
+            // Add local cached logs ONLY if they are not already represented by server logs
+            (localCachedLogs || []).forEach(localItem => {
+                // Skip if it's a real DB ID that the server already provided
+                if (localItem.id < timeStampThreshold && logMap.has(String(localItem.id))) {
+                    return;
+                }
+                
+                // If it's a temporary timestamp ID, check if a matching server log exists
+                let isDuplicate = false;
+                for (const serverItem of (data.food_logs || [])) {
+                    if (serverItem.food_name === localItem.food_name && 
+                        serverItem.meal_type === localItem.meal_type && 
+                        serverItem.calories === localItem.calories) {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+                
+                if (!isDuplicate) {
+                    logMap.set(String(localItem.id), localItem);
+                }
             });
 
             let activeLogs = Array.from(logMap.values());
