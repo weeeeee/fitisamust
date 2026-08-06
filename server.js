@@ -673,6 +673,8 @@ app.post('/api/integrations/sync-weight', (req, res) => {
             weightStmt.run(memberId, weightVal, provider || 'Wearable Sync');
         }
 
+        db.prepare('UPDATE intake_profiles SET weight = ? WHERE member_id = ?').run(weightVal, memberId);
+
         if (provider) {
             const intStmt = db.prepare(`
                 INSERT INTO member_integrations (member_id, provider, status, last_synced_at)
@@ -720,6 +722,7 @@ app.post('/api/webhooks/weight', (req, res) => {
                 const stmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date, source) VALUES (?, ?, DATE('now', 'localtime'), ?)");
                 stmt.run(targetMemberId, weightVal, source || 'Garmin Connect');
             }
+            db.prepare('UPDATE intake_profiles SET weight = ? WHERE member_id = ?').run(weightVal, targetMemberId);
         }
 
         const intStmt = db.prepare(`

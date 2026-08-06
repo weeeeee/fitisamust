@@ -1133,35 +1133,34 @@ async function syncHealthAppModal(providerName = 'Garmin Connect') {
     const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
     const memberId = member.id || 3;
 
+    let defaultWeight = '217.0';
+    if (window.currentWeightLogs && window.currentWeightLogs.length > 0) {
+        defaultWeight = String(window.currentWeightLogs[0].weight);
+    }
+
+    const input = prompt(`🔄 ${providerName} Cloud Sync\n\nEnter current weight reading from your ${providerName} scale / app (lbs):`, defaultWeight);
+    if (!input || isNaN(parseFloat(input))) return;
+
+    const syncedWeight = parseFloat(input);
+
     try {
-        const response = await fetch(getApiUrl('/api/webhooks/weight'), {
+        const response = await fetch(getApiUrl('/api/integrations/sync-weight'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 memberId: memberId,
-                source: providerName + ' Cloud Sync'
+                weight: syncedWeight,
+                provider: providerName
             })
         });
         
         const data = await safeJsonParse(response);
-        let syncedWeight = data.weight;
-
-        if (!syncedWeight || isNaN(syncedWeight)) {
-            const input = prompt(`🔄 ${providerName} Cloud Sync\n\nEnter current weight reading from your ${providerName} app (lbs):`, "217.0");
-            if (input && !isNaN(parseFloat(input))) {
-                syncedWeight = parseFloat(input);
-                await fetch(getApiUrl('/api/integrations/sync-weight'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ memberId, weight: syncedWeight, provider: providerName })
-                });
-            }
-        }
-
-        if (syncedWeight) {
-            alert(`✅ Synced with ${providerName}!\nLogged Weight: ${syncedWeight} lbs`);
+        if (response.ok) {
+            alert(`✅ Synced with ${providerName}!\nLogged Scale Weight: ${syncedWeight} lbs`);
             if (window.triggerDashboardReload) window.triggerDashboardReload();
             loadIntegrations();
+        } else {
+            alert('Sync failed: ' + (data.error || 'Unknown error'));
         }
     } catch (err) {
         alert('Sync failed: ' + err.message);
