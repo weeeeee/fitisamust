@@ -1313,7 +1313,6 @@ async function loadIntegrations() {
                                 <i class="fa-solid fa-paper-plane"></i> Test Webhook Sync
                             </button>
                         </div>
-                    `;
                 }
             }
         }
@@ -1321,6 +1320,53 @@ async function loadIntegrations() {
         console.error('Failed to load integrations status', err);
     }
 }
+
+// 7. Dedicated Garmin Connect Scale Webhook & Sync Manager
+function connectGarminScaleModal() {
+    const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
+    const memberId = member.id || 3;
+    const webhookUrl = `${window.location.origin}/api/webhooks/garmin?memberId=${memberId}`;
+
+    let defaultWeight = '217.0';
+    if (window.currentWeightLogs && window.currentWeightLogs.length > 0) {
+        defaultWeight = String(window.currentWeightLogs[0].weight);
+    }
+
+    const input = prompt(
+        `📡 Garmin Connect Scale Webhook & Cloud Sync\n\n` +
+        `Your Personal Garmin Webhook Listener URL:\n${webhookUrl}\n\n` +
+        `Enter scale reading from your Garmin Connect app / Index Scale (lbs):`,
+        defaultWeight
+    );
+
+    if (!input || isNaN(parseFloat(input))) return;
+
+    const syncedWeight = parseFloat(input);
+
+    fetch(getApiUrl('/api/integrations/sync-weight'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            memberId: memberId,
+            weight: syncedWeight,
+            provider: 'Garmin Connect'
+        })
+    }).then(res => res.json()).then(data => {
+        alert(`✅ Synced with Garmin Connect!\nLogged Scale Weight: ${syncedWeight} lbs`);
+        if (window.triggerDashboardReload) window.triggerDashboardReload();
+        loadIntegrations();
+    }).catch(err => {
+        alert('Sync failed: ' + err.message);
+    });
+}
+
+window.connectGarminScaleModal = connectGarminScaleModal;
+window.syncHealthAppModal = syncHealthAppModal;
+window.scanBluetoothScale = scanBluetoothScale;
+window.connectWithingsCloud = connectWithingsCloud;
+window.connectFitbitWearables = connectFitbitWearables;
+window.submitWearableLink = submitWearableLink;
+window.triggerWebhookTest = triggerWebhookTest;
 
 // Trigger loadIntegrations on load
 document.addEventListener('DOMContentLoaded', () => {

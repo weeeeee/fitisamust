@@ -702,10 +702,70 @@ app.post('/api/integrations/sync-weight', (req, res) => {
     }
 });
 
-// Webhook Endpoint (Accepts automated weight payloads from Withings, Terra API, Fitbit, Apple Health)
-app.post('/api/webhooks/weight', (req, res) => {
-    const { memberId, email, weight, source } = req.body;
+// --- Garmin Connect & Scale Webhook Engine ---
+
+// Verification endpoint for Garmin Connect / Health APIs
+app.get(['/api/webhooks/garmin', '/api/webhooks/weight'], (req, res) => {
+    if (req.query['hub.challenge']) {
+        return res.send(req.query['hub.challenge']);
+    }
+    res.json({ status: 'active', service: 'Garmin Connect Weight Webhook Listener' });
+});
+
+function parseScaleWeightPayload(req) {
+    const body = req.body || {};
+    const query = req.query || {};
+
+    let memberId = body.memberId || body.member_id || query.memberId || query.member_id;
+    let email = body.email || query.email;
+    let userId = body.userId || body.user_id || body.garmin_id || query.userId;
+    let source = body.source || query.source || 'Garmin Connect';
+
+    let weightVal = null;
+
+    // Check Garmin Health API bodyComps array
+    if (body.bodyComps && Array.isArray(body.bodyComps) && body.bodyComps.length > 0) {
+        const comp = body.bodyComps[0];
+        if (comp.userId && !userId) userId = comp.userId;
+        if (comp.weightInGrams) {
+            weightVal = comp.weightInGrams / 453.59237;
+        } else if (comp.weightInKg) {
+            weightVal = comp.weightInKg * 2.20462;
+        } else if (comp.weight) {
+            weightVal = parseFloat(comp.weight);
+        }
+    }
+
+    // Direct properties
+    if (!weightVal) {
+        if (body.weightInGrams || query.weightInGrams) {
+            weightVal = parseFloat(body.weightInGrams || query.weightInGrams) / 453.59237;
+        } else if (body.weightInKg || body.weight_kg || query.weightInKg) {
+            weightVal = parseFloat(body.weightInKg || body.weight_kg || query.weightInKg) * 2.20462;
+        } else if (body.weight_lbs || body.weight || query.weight) {
+            let w = parseFloat(body.weight_lbs || body.weight || query.weight);
+            const unit = (body.unit || query.unit || '').toLowerCase();
+            if (unit === 'kg' || unit === 'kilograms') {
+                w = w * 2.20462;
+            }
+            weightVal = w;
+        }
+    }
+
+    return {
+        memberId: memberId ? parseInt(memberId, 10) : null,
+        email,
+        userId,
+        source,
+        weightVal: weightVal && !isNaN(weightVal) && weightVal > 0 ? parseFloat(weightVal.toFixed(1)) : null
+    };
+}
+
+// Webhook Endpoint (Accepts automated weight payloads from Garmin Connect, Withings, Terra API, Fitbit, Apple Health)
+app.post(['/api/webhooks/garmin', '/api/webhooks/weight'], (req, res) => {
     try {
+        const { memberId, email, source, weightVal } = parseScaleWeightPayload(req);
+
         let targetMemberId = memberId;
         if (!targetMemberId && email) {
             const user = db.prepare('SELECT id FROM members WHERE email = ?').get(email);
@@ -716,17 +776,6 @@ app.post('/api/webhooks/weight', (req, res) => {
             targetMemberId = defaultUser ? defaultUser.id : 3;
         }
 
-        let weightVal = parseFloat(weight);
-        if (isNaN(weightVal) || weightVal <= 0) {
-            const latestLog = db.prepare('SELECT weight FROM weight_logs WHERE member_id = ? ORDER BY id DESC LIMIT 1').get(targetMemberId);
-            if (latestLog && latestLog.weight) {
-                weightVal = latestLog.weight;
-            } else {
-                const profile = db.prepare('SELECT weight FROM intake_profiles WHERE member_id = ?').get(targetMemberId);
-                weightVal = (profile && profile.weight) ? profile.weight : null;
-            }
-        }
-
         if (weightVal && weightVal > 0) {
             const latestLog = db.prepare('SELECT weight FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC, id DESC LIMIT 1').get(targetMemberId);
             if (!latestLog || parseFloat(latestLog.weight) !== weightVal) {
@@ -734,19 +783,21 @@ app.post('/api/webhooks/weight', (req, res) => {
                 stmt.run(targetMemberId, weightVal, source || 'Garmin Connect');
             }
             db.prepare('UPDATE intake_profiles SET weight = ? WHERE member_id = ?').run(weightVal, targetMemberId);
+
+            const intStmt = db.prepare(`
+                INSERT INTO member_integrations (member_id, provider, status, last_synced_at)
+                VALUES (?, ?, 'active', CURRENT_TIMESTAMP)
+                ON CONFLICT(member_id, provider) DO UPDATE SET status = 'active', last_synced_at = CURRENT_TIMESTAMP
+            `);
+            intStmt.run(targetMemberId, source || 'Garmin Connect');
+
+            return res.json({ success: true, message: 'Garmin scale weight synced successfully', memberId: targetMemberId, weight: weightVal });
+        } else {
+            return res.json({ success: true, message: 'Webhook active (no new scale weight payload)' });
         }
-
-        const intStmt = db.prepare(`
-            INSERT INTO member_integrations (member_id, provider, status, last_synced_at)
-            VALUES (?, ?, 'active', CURRENT_TIMESTAMP)
-            ON CONFLICT(member_id, provider) DO UPDATE SET status = 'active', last_synced_at = CURRENT_TIMESTAMP
-        `);
-        intStmt.run(targetMemberId, source || 'Webhook');
-
-        res.json({ success: true, message: 'Webhook weight payload processed', memberId: targetMemberId, weight: weightVal });
     } catch (err) {
         console.error(err.message);
-        res.status(500).json({ error: 'Webhook processing failed.' });
+        res.status(500).json({ error: 'Garmin Webhook processing failed.' });
     }
 });
 
