@@ -1257,6 +1257,7 @@ async function submitWearableLink(event) {
         const data = await safeJsonParse(res);
         
         if (res.ok) {
+            localStorage.setItem('fitisamust_primary_integration', brand);
             let weightVal = parseFloat(initialWeightInput);
 
             if (weightVal && !isNaN(weightVal) && weightVal > 0) {
