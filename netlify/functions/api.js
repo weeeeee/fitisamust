@@ -491,13 +491,20 @@ app.post('/api/intake', (req, res) => {
 // Get Dashboard Data
 app.get('/api/dashboard/:memberId', (req, res) => {
     const { memberId } = req.params;
+    const clientDate = req.query.date || req.query.log_date;
     try {
         const member = db.prepare('SELECT name, email FROM members WHERE id = ?').get(memberId);
         if (!member) return res.status(404).json({ error: 'Member not found' });
 
         const goals = db.prepare('SELECT * FROM goals WHERE member_id = ? ORDER BY created_at DESC LIMIT 1').get(memberId);
         const intake_profile = db.prepare('SELECT * FROM intake_profiles WHERE member_id = ?').get(memberId);
-        const food_logs = db.prepare('SELECT * FROM food_logs WHERE member_id = ? AND log_date = DATE(\'now\', \'localtime\')').all(memberId);
+        
+        let food_logs;
+        if (clientDate) {
+            food_logs = db.prepare(`SELECT * FROM food_logs WHERE member_id = ? AND (log_date = ? OR log_date = DATE('now', 'localtime') OR log_date = DATE('now')) ORDER BY id ASC`).all(memberId, clientDate);
+        } else {
+            food_logs = db.prepare(`SELECT * FROM food_logs WHERE member_id = ? AND (log_date = DATE('now', 'localtime') OR log_date = DATE('now')) ORDER BY id ASC`).all(memberId);
+        }
         
         // Fetch historical weight logs
         const weight_logs = db.prepare('SELECT * FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC, id DESC').all(memberId);
@@ -633,10 +640,12 @@ app.post('/api/goals', (req, res) => {
 
 // Log Food
 app.post('/api/food', (req, res) => {
-    const { memberId, foodName, calories, protein, carbs, fat, mealType } = req.body;
+    const { memberId, foodName, calories, protein, carbs, fat, mealType, logDate } = req.body;
     try {
-        const stmt = db.prepare("INSERT INTO food_logs (member_id, food_name, calories, protein, carbs, fat, meal_type, log_date) VALUES (?, ?, ?, ?, ?, ?, ?, DATE('now', 'localtime'))");
-        const result = stmt.run(memberId, foodName, calories, protein, carbs, fat, mealType || 'Breakfast');
+        const todayStr = new Date().toISOString().split('T')[0];
+        const targetDate = logDate || todayStr;
+        const stmt = db.prepare("INSERT INTO food_logs (member_id, food_name, calories, protein, carbs, fat, meal_type, log_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        const result = stmt.run(memberId, foodName, calories, protein, carbs, fat, mealType || 'Breakfast', targetDate);
         res.json({ message: 'Food logged successfully', id: result.lastInsertRowid });
     } catch (err) {
         console.error(err.message);

@@ -663,6 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.lastSelectedMeal = mealVal;
             localStorage.setItem('fitisamust_last_meal', mealVal);
 
+            const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
             const foodObj = {
                 id: document.getElementById('edit-food-id').value || Date.now(),
                 member_id: member.id,
@@ -671,50 +672,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 calories: parseInt(document.getElementById('food-cal').value, 10) || 0,
                 protein: parseInt(document.getElementById('food-pro').value, 10) || 0,
                 carbs: parseInt(document.getElementById('food-carb').value, 10) || 0,
-                fat: parseInt(document.getElementById('food-fat').value, 10) || 0
+                fat: parseInt(document.getElementById('food-fat').value, 10) || 0,
+                log_date: todayStr
             };
 
-        const id = document.getElementById('edit-food-id').value;
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? getApiUrl(`/api/food/${id}`) : getApiUrl('/api/food');
-        
-        try {
-            const res = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    memberId: member.id,
-                    mealType: mealVal,
-                    foodName: foodObj.food_name,
-                    calories: foodObj.calories,
-                    protein: foodObj.protein,
-                    carbs: foodObj.carbs,
-                    fat: foodObj.fat
-                })
-            });
-            if (res.ok) {
-                const resData = await res.json();
-                if (resData.id) foodObj.id = resData.id;
+            const id = document.getElementById('edit-food-id').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? getApiUrl(`/api/food/${id}`) : getApiUrl('/api/food');
+            
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: member.id,
+                        mealType: mealVal,
+                        foodName: foodObj.food_name,
+                        calories: foodObj.calories,
+                        protein: foodObj.protein,
+                        carbs: foodObj.carbs,
+                        fat: foodObj.fat,
+                        logDate: todayStr
+                    })
+                });
+                if (res.ok) {
+                    const resData = await res.json();
+                    if (resData.id) foodObj.id = resData.id;
+                }
+            } catch (err) {
+                console.error('API Sync:', err);
             }
-        } catch (err) {
-            console.error('API Sync:', err);
-        }
 
-        // Cache in LocalStorage
-        try {
-            const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
-            const key = `fitisamust_food_logs_${member.id}_${todayStr}`;
-            let logs = JSON.parse(localStorage.getItem(key) || '[]');
-            if (id) {
-                logs = logs.map(item => item.id == foodObj.id ? { ...item, ...foodObj } : item);
-            } else {
-                logs.push(foodObj);
-            }
-            localStorage.setItem(key, JSON.stringify(logs));
-        } catch(e) {}
-        
-        cancelEdit();
-        loadDashboard();
+            // Cache in LocalStorage
+            try {
+                const key = `fitisamust_food_logs_${member.id}_${todayStr}`;
+                let logs = JSON.parse(localStorage.getItem(key) || '[]');
+                if (id) {
+                    logs = logs.map(item => item.id == foodObj.id ? { ...item, ...foodObj } : item);
+                } else {
+                    logs.push(foodObj);
+                }
+                localStorage.setItem(key, JSON.stringify(logs));
+            } catch(e) {}
+            
+            cancelEdit();
+            loadDashboard();
         });
     }
 
@@ -734,10 +736,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
+            const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
             if (member && member.id) {
                 loadMemberFoodHistory(member.id);
             }
-            const res = await fetch(getApiUrl(`/api/dashboard/${member.id}`));
+            const res = await fetch(getApiUrl(`/api/dashboard/${member.id}?date=${todayStr}`));
             const data = await res.json();
             
             // Populate Profile Snapshot
@@ -933,17 +936,24 @@ document.addEventListener('DOMContentLoaded', () => {
             let tCal = 0, tPro = 0, tCarb = 0, tFat = 0;
             
             // Retrieve Local Cache
+            // Retrieve Local Cache & Perform Smart Union Merge to Prevent Food Item Loss
             const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
             const localKey = `fitisamust_food_logs_${member.id}_${todayStr}`;
             let localCachedLogs = [];
             try { localCachedLogs = JSON.parse(localStorage.getItem(localKey) || '[]'); } catch(e) {}
 
-            let activeLogs = data.food_logs || [];
-            if (activeLogs.length > 0) {
-                try { localStorage.setItem(localKey, JSON.stringify(activeLogs)); } catch(e) {}
-            } else if (localCachedLogs.length > 0) {
-                activeLogs = localCachedLogs;
-            }
+            const logMap = new Map();
+            (localCachedLogs || []).forEach(item => {
+                const key = item.id ? String(item.id) : `${item.meal_type}_${item.food_name}_${item.calories}`;
+                logMap.set(key, item);
+            });
+            (data.food_logs || []).forEach(item => {
+                const key = item.id ? String(item.id) : `${item.meal_type}_${item.food_name}_${item.calories}`;
+                logMap.set(key, item);
+            });
+
+            let activeLogs = Array.from(logMap.values());
+            try { localStorage.setItem(localKey, JSON.stringify(activeLogs)); } catch(e) {}
 
             if (activeLogs) {
                 window.currentFoodLogs = activeLogs;
