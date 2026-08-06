@@ -821,104 +821,130 @@ document.addEventListener('DOMContentLoaded', () => {
             // Populate Weight History and Chart
             const weightTbody = document.getElementById('weight-history');
             const weightChartContainer = document.getElementById('weight-chart-container');
-            weightTbody.innerHTML = '';
+            if (weightTbody) weightTbody.innerHTML = '';
             
-            if (data.weight_logs && data.weight_logs.length > 0) {
-                window.currentWeightLogs = data.weight_logs;
-                weightChartContainer.style.display = 'block';
+            // Backup Local Cache for Weight Logs
+            const weightLocalKey = `fitisamust_weight_logs_${member.id}`;
+            let activeWeightLogs = data.weight_logs || [];
+            if (activeWeightLogs.length > 0) {
+                try { localStorage.setItem(weightLocalKey, JSON.stringify(activeWeightLogs)); } catch(e) {}
+            } else {
+                try {
+                    const cachedW = JSON.parse(localStorage.getItem(weightLocalKey) || '[]');
+                    if (cachedW.length > 0) activeWeightLogs = cachedW;
+                } catch(e) {}
+            }
+            
+            if (activeWeightLogs && activeWeightLogs.length > 0) {
+                window.currentWeightLogs = activeWeightLogs;
+                if (weightChartContainer) weightChartContainer.style.display = 'block';
                 
                 // Populate Table (newest first)
-                data.weight_logs.forEach(log => {
-                    let sourceBadge = `<span style="background: rgba(255, 255, 255, 0.08); color: #aaa; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;">
-                        <i class="fa-solid fa-pen-to-square" style="font-size: 0.7rem;"></i> Manual
-                    </span>`;
-                    
-                    const srcLower = (log.source || '').toLowerCase();
-                    if (srcLower.includes('garmin')) {
-                        sourceBadge = `<span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
-                            <i class="fa-solid fa-clock-rotate-left" style="font-size: 0.75rem;"></i> Garmin Connect
+                if (weightTbody) {
+                    activeWeightLogs.forEach(log => {
+                        let sourceBadge = `<span style="background: rgba(255, 255, 255, 0.08); color: #aaa; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-pen-to-square" style="font-size: 0.7rem;"></i> Manual
                         </span>`;
-                    } else if (srcLower.includes('apple')) {
-                        sourceBadge = `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
-                            <i class="fa-solid fa-heart-pulse" style="font-size: 0.75rem;"></i> Apple Health
-                        </span>`;
-                    } else if (srcLower.includes('fitbit')) {
-                        sourceBadge = `<span style="background: rgba(45, 212, 191, 0.2); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
-                            <i class="fa-solid fa-person-walk" style="font-size: 0.75rem;"></i> Fitbit
-                        </span>`;
-                    } else if (srcLower.includes('withings')) {
-                        sourceBadge = `<span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
-                            <i class="fa-solid fa-scale-balanced" style="font-size: 0.75rem;"></i> Withings
-                        </span>`;
-                    } else if (log.source && log.source !== 'Manual Input') {
-                        sourceBadge = `<span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
-                            <i class="fa-solid fa-arrows-rotate" style="font-size: 0.75rem;"></i> ${log.source}
-                        </span>`;
-                    }
-
-                    weightTbody.innerHTML += `<tr>
-                        <td>${log.log_date}</td>
-                        <td style="font-weight: 600;">${log.weight} lbs</td>
-                        <td>${sourceBadge}</td>
-                        <td style="text-align: right;">
-                            <button onclick="editWeight(${log.id})" style="background: none; border: none; color: #36a2eb; cursor: pointer; font-size: 1.1rem; margin-right: 15px;" title="Edit weight">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-                            <button onclick="deleteWeight(${log.id})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem;" title="Delete weight">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </td>
-                    </tr>`;
-                });
-
-                // Prepare data for Chart (oldest first for chronological x-axis)
-                const chartLogs = [...data.weight_logs].reverse();
-                const labels = chartLogs.map(log => log.log_date.substring(5)); // Just MM-DD
-                const weights = chartLogs.map(log => log.weight);
-
-                const wCtx = document.getElementById('weightChart').getContext('2d');
-                if (weightChartInstance) weightChartInstance.destroy();
-
-                weightChartInstance = new Chart(wCtx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Weight (lbs)',
-                            data: weights,
-                            borderColor: '#36a2eb',
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                            borderWidth: 2,
-                            pointBackgroundColor: '#fff',
-                            pointBorderColor: '#36a2eb',
-                            pointRadius: 4,
-                            fill: true,
-                            tension: 0.3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: {
-                                suggestedMin: Math.min(...weights) - 5,
-                                suggestedMax: Math.max(...weights) + 5,
-                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                ticks: { color: 'rgba(255, 255, 255, 0.7)' }
-                            },
-                            x: {
-                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                                ticks: { color: 'rgba(255, 255, 255, 0.7)' }
-                            }
+                        
+                        const srcLower = (log.source || '').toLowerCase();
+                        if (srcLower.includes('garmin')) {
+                            sourceBadge = `<span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fa-solid fa-clock-rotate-left" style="font-size: 0.75rem;"></i> Garmin Connect
+                            </span>`;
+                        } else if (srcLower.includes('apple')) {
+                            sourceBadge = `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fa-solid fa-heart-pulse" style="font-size: 0.75rem;"></i> Apple Health
+                            </span>`;
+                        } else if (srcLower.includes('fitbit')) {
+                            sourceBadge = `<span style="background: rgba(45, 212, 191, 0.2); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fa-solid fa-person-walk" style="font-size: 0.75rem;"></i> Fitbit
+                            </span>`;
+                        } else if (srcLower.includes('withings')) {
+                            sourceBadge = `<span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fa-solid fa-scale-balanced" style="font-size: 0.75rem;"></i> Withings
+                            </span>`;
+                        } else if (log.source && log.source !== 'Manual Input') {
+                            sourceBadge = `<span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fa-solid fa-arrows-rotate" style="font-size: 0.75rem;"></i> ${log.source}
+                            </span>`;
                         }
+
+                        weightTbody.innerHTML += `<tr>
+                            <td>${log.log_date || ''}</td>
+                            <td style="font-weight: 600;">${log.weight} lbs</td>
+                            <td>${sourceBadge}</td>
+                            <td style="text-align: right;">
+                                <button onclick="editWeight(${log.id})" style="background: none; border: none; color: #36a2eb; cursor: pointer; font-size: 1.1rem; margin-right: 15px;" title="Edit weight">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="deleteWeight(${log.id})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1rem;" title="Delete weight">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+
+                // Render Chart Safely
+                try {
+                    const wCanvas = document.getElementById('weightChart');
+                    if (wCanvas && typeof Chart !== 'undefined') {
+                        const chartLogs = [...activeWeightLogs].reverse();
+                        const labels = chartLogs.map(log => (log.log_date || '').substring(5)); // MM-DD
+                        const weights = chartLogs.map(log => log.weight);
+
+                        const wCtx = wCanvas.getContext('2d');
+                        if (weightChartInstance) {
+                            try { weightChartInstance.destroy(); } catch(e) {}
+                        }
+
+                        const minW = Math.min(...weights);
+                        const maxW = Math.max(...weights);
+
+                        weightChartInstance = new Chart(wCtx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Weight (lbs)',
+                                    data: weights,
+                                    borderColor: '#36a2eb',
+                                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                    borderWidth: 2,
+                                    pointBackgroundColor: '#fff',
+                                    pointBorderColor: '#36a2eb',
+                                    pointRadius: 4,
+                                    fill: true,
+                                    tension: 0.3
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    y: {
+                                        suggestedMin: minW - 5,
+                                        suggestedMax: maxW + 5,
+                                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                        ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                                    },
+                                    x: {
+                                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                        ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                                    }
+                                }
+                            }
+                        });
                     }
-                });
+                } catch(chartErr) {
+                    console.warn('Weight chart rendering notice:', chartErr);
+                }
             } else {
-                weightChartContainer.style.display = 'none';
-                weightTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-scale-balanced" style="color: #a855f7;"></i> No weight entries logged yet. Stepping on your scale or clicking "Sync Garmin / Wearable" will record your weight here.</td></tr>';
+                if (weightChartContainer) weightChartContainer.style.display = 'none';
+                if (weightTbody) {
+                    weightTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-scale-balanced" style="color: #a855f7;"></i> No weight entries logged yet. Stepping on your scale or clicking "Sync Health App / Wearable" will record your weight here.</td></tr>';
+                }
             }
 
             // Populate Food History & Calculate Macros
