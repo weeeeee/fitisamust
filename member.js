@@ -1115,46 +1115,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error('loadDashboard error:', err);
         }
-                                ['#ff6384', '#36a2eb', '#ffce56', 'rgba(255, 255, 255, 0.08)'] : 
-                                ['rgba(255, 255, 255, 0.08)'],
-                            borderColor: ['#1e293b', '#1e293b', '#1e293b', 'rgba(255, 255, 255, 0.1)'],
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '70%',
-                        plugins: {
-                            legend: { 
-                                position: 'bottom', 
-                                labels: { 
-                                    color: 'rgba(255,255,255,0.85)',
-                                    filter: function(item) {
-                                        return item.text !== 'Remaining Daily Goal';
-                                    }
-                                } 
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.label || '';
-                                        if (label === 'Protein') return `Protein: ${tPro}g (${proCal} kcal)`;
-                                        if (label === 'Carbs') return `Carbs: ${tCarb}g (${carbCal} kcal)`;
-                                        if (label === 'Fat') return `Fat: ${tFat}g (${fatCal} kcal)`;
-                                        if (label === 'Remaining Daily Goal') return `Remaining: ${remainingCal} kcal`;
-                                        return `${label}: ${context.raw}`;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-        } catch (err) {
-            console.error('Failed to load dashboard', err);
-        }
     }
 
     // Local Food Search Logic
