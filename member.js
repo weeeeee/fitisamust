@@ -806,6 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             } else {
                 weightChartContainer.style.display = 'none';
+                weightTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-scale-balanced" style="color: #a855f7;"></i> No weight entries logged yet. Stepping on your scale or clicking "Sync Garmin / Wearable" will record your weight here.</td></tr>';
             }
 
             // Populate Food History & Calculate Macros

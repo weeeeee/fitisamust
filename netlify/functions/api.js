@@ -590,16 +590,22 @@ app.put('/api/food/:id', (req, res) => {
     }
 });
 
+function shouldInsertWeightLog(memberId, weightVal) {
+    const todayLog = db.prepare("SELECT weight FROM weight_logs WHERE member_id = ? AND log_date = DATE('now', 'localtime') ORDER BY id DESC LIMIT 1").get(memberId);
+    if (!todayLog) return true;
+    return parseFloat(todayLog.weight) !== weightVal;
+}
+
 // Log Weight
 app.post('/api/weight', (req, res) => {
     const { memberId, weight, source } = req.body;
     try {
         const weightVal = parseFloat(weight);
-        const latestLog = db.prepare('SELECT weight FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC, id DESC LIMIT 1').get(memberId);
-        if (!latestLog || parseFloat(latestLog.weight) !== weightVal) {
+        if (shouldInsertWeightLog(memberId, weightVal)) {
             const stmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date, source) VALUES (?, ?, DATE('now', 'localtime'), ?)");
             stmt.run(memberId, weightVal, source || 'Manual Input');
         }
+        db.prepare('UPDATE intake_profiles SET weight = ? WHERE member_id = ?').run(weightVal, memberId);
         res.json({ message: 'Weight logged successfully' });
     } catch (err) {
         console.error(err.message);
@@ -678,8 +684,7 @@ app.post('/api/integrations/sync-weight', (req, res) => {
     if (!memberId || !weight) return res.status(400).json({ error: 'memberId and weight required.' });
     try {
         const weightVal = parseFloat(weight);
-        const latestLog = db.prepare('SELECT weight FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC, id DESC LIMIT 1').get(memberId);
-        if (!latestLog || parseFloat(latestLog.weight) !== weightVal) {
+        if (shouldInsertWeightLog(memberId, weightVal)) {
             const weightStmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date, source) VALUES (?, ?, DATE('now', 'localtime'), ?)");
             weightStmt.run(memberId, weightVal, provider || 'Wearable Sync');
         }
@@ -777,8 +782,7 @@ app.post(['/api/webhooks/garmin', '/api/webhooks/weight'], (req, res) => {
         }
 
         if (weightVal && weightVal > 0) {
-            const latestLog = db.prepare('SELECT weight FROM weight_logs WHERE member_id = ? ORDER BY log_date DESC, id DESC LIMIT 1').get(targetMemberId);
-            if (!latestLog || parseFloat(latestLog.weight) !== weightVal) {
+            if (shouldInsertWeightLog(targetMemberId, weightVal)) {
                 const stmt = db.prepare("INSERT INTO weight_logs (member_id, weight, log_date, source) VALUES (?, ?, DATE('now', 'localtime'), ?)");
                 stmt.run(targetMemberId, weightVal, source || 'Garmin Connect');
             }
