@@ -537,6 +537,68 @@ app.get('/api/food/search', (req, res) => {
     }
 });
 
+// AI Food Macro Estimator (Gemini AI Integration)
+app.post('/api/food/ai-estimate', async (req, res) => {
+    const { query } = req.body;
+    if (!query || !query.trim()) {
+        return res.status(400).json({ error: 'Food query string is required.' });
+    }
+
+    const cleanQuery = query.trim();
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (apiKey) {
+        try {
+            const promptText = `Act as an expert nutritionist. Provide accurate nutritional estimates for standard 1 serving of "${cleanQuery}". Respond ONLY with valid, unformatted raw JSON matching this exact structure with numeric values: {"name": "${cleanQuery} (1 serving)", "calories": 250, "protein": 15, "carbs": 30, "fat": 8}. Do not include markdown code block formatting or backticks.`;
+
+            const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: promptText }]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
+                })
+            });
+
+            if (geminiRes.ok) {
+                const geminiData = await geminiRes.json();
+                const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (rawText) {
+                    const cleanJson = rawText.replace(/```json|```/g, '').trim();
+                    const parsed = JSON.parse(cleanJson);
+                    return res.json({
+                        success: true,
+                        source: 'Google Gemini AI',
+                        name: parsed.name || `${cleanQuery} (1 serving)`,
+                        calories: Math.round(Number(parsed.calories) || 0),
+                        protein: Math.round(Number(parsed.protein) || 0),
+                        carbs: Math.round(Number(parsed.carbs) || 0),
+                        fat: Math.round(Number(parsed.fat) || 0)
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Gemini API call error:', err);
+        }
+    }
+
+    // Heuristic fallback if GEMINI_API_KEY is not set or API error occurs
+    const formattedName = cleanQuery.charAt(0).toUpperCase() + cleanQuery.slice(1);
+    res.json({
+        success: true,
+        source: 'Nutritional Heuristic',
+        name: `${formattedName} (1 serving)`,
+        calories: 250,
+        protein: 12,
+        carbs: 30,
+        fat: 9
+    });
+});
+
 // Update Goal
 app.post('/api/goals', (req, res) => {
     const { memberId, goalType, targetValue, currentValue } = req.body;

@@ -508,10 +508,14 @@
             <span class="close-btn" id="close-local-search-btn" style="float: right; cursor: pointer; font-size: 1.5rem;">&times;</span>
             <h2>Search Food Database</h2>
             
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="text" id="local-search-input" placeholder="Search for food..." style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-main); border-radius: 6px; outline: none;" />
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                <input type="text" id="local-search-input" placeholder="Search food (e.g. Spaghetti, Pilsberry)..." style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-main); border-radius: 6px; outline: none;" />
                 <button type="button" class="btn btn-primary" id="local-search-btn">Search</button>
             </div>
+            
+            <button type="button" id="btn-ask-gemini-ai" onclick="requestGeminiNutritionEstimate()" class="btn btn-outline w-100" style="margin-bottom: 15px; background: linear-gradient(135deg, rgba(168, 85, 247, 0.18) 0%, rgba(56, 189, 248, 0.18) 100%); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; font-weight: bold; padding: 10px 15px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fa-solid fa-wand-magic-sparkles" style="color: #38bdf8;"></i> Ask Gemini AI for Nutrition Estimate
+            </button>
             
             <div id="local-search-results" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
                 <!-- Results populate here -->

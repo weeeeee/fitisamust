@@ -1035,7 +1035,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (uniqueResults.length === 0) {
-            localSearchResults.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">No matching foods found in the database.</div>';
+            const escapedQuery = query ? query.replace(/'/g, "\\'") : '';
+            localSearchResults.innerHTML = `
+                <div style="color: var(--text-muted); text-align: center; padding: 25px; background: linear-gradient(135deg, rgba(168,85,247,0.1) 0%, rgba(56,189,248,0.1) 100%); border: 1px dashed rgba(168,85,247,0.4); border-radius: 10px;">
+                    <div style="font-size: 1.8rem; color: #c084fc; margin-bottom: 8px;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div style="font-weight: bold; color: #fff; margin-bottom: 5px;">No database match for "${query}"</div>
+                    <div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 18px;">
+                        Let Gemini AI calculate standard calories, protein, carbs, and fat for this item.
+                    </div>
+                    <button type="button" onclick="requestGeminiNutritionEstimate('${escapedQuery}')" class="btn btn-primary" style="background: linear-gradient(135deg, #a855f7 0%, #38bdf8 100%); border: none; font-weight: bold; padding: 10px 20px; width: 100%;">
+                        <i class="fa-solid fa-brain"></i> Ask Gemini AI for Nutrition
+                    </button>
+                </div>
+            `;
             return;
         }
 
@@ -1079,6 +1093,63 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Gemini AI Food Nutrition Estimator Handler
+async function requestGeminiNutritionEstimate(foodQuery) {
+    const resultsContainer = document.getElementById('local-search-results');
+    if (!foodQuery) {
+        foodQuery = document.getElementById('local-search-input').value.trim();
+    }
+    if (!foodQuery) {
+        alert('Please enter a food name in the search box to analyze with Gemini AI.');
+        return;
+    }
+
+    if (resultsContainer) {
+        resultsContainer.innerHTML = `
+            <div style="text-align: center; padding: 30px; background: rgba(168, 85, 247, 0.08); border-radius: 10px; border: 1px solid rgba(168, 85, 247, 0.3);">
+                <div style="font-size: 2.2rem; color: #c084fc; margin-bottom: 12px;">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                </div>
+                <div style="font-weight: bold; color: #fff; margin-bottom: 6px; font-size: 1.1rem;">Analyzing "${foodQuery}" with Gemini AI...</div>
+                <div style="font-size: 0.85rem; color: #cbd5e1;">Calculating standard serving size, calories, protein, carbs, and fat...</div>
+            </div>
+        `;
+    }
+
+    try {
+        const response = await fetch(getApiUrl('/api/food/ai-estimate'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: foodQuery })
+        });
+
+        const data = await safeJsonParse(response);
+
+        if (response.ok && data.success) {
+            document.getElementById('food-name').value = data.name;
+            document.getElementById('food-qty').value = 1;
+            document.getElementById('food-cal').value = data.calories;
+            document.getElementById('food-pro').value = data.protein;
+            document.getElementById('food-carb').value = data.carbs;
+            document.getElementById('food-fat').value = data.fat;
+
+            const searchModal = document.getElementById('local-food-search-modal');
+            if (searchModal) searchModal.style.display = 'none';
+
+            const form = document.getElementById('food-form');
+            if (form) form.scrollIntoView({ behavior: 'smooth' });
+
+            alert(`✨ Gemini AI Nutrition Estimate Applied!\n\nFood: ${data.name}\nCalories: ${data.calories} kcal\nProtein: ${data.protein}g | Carbs: ${data.carbs}g | Fat: ${data.fat}g\nSource: ${data.source}`);
+        } else {
+            alert('Could not retrieve AI estimate: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Network error while requesting AI estimate: ' + err.message);
+    }
+}
+
+window.requestGeminiNutritionEstimate = requestGeminiNutritionEstimate;
 
 // --- Connected Scales & Health Devices Integration Engine ---
 
