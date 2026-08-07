@@ -866,17 +866,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const weightChartContainer = document.getElementById('weight-chart-container');
             if (weightTbody) weightTbody.innerHTML = '';
 
-            // Backup Local Cache for Weight Logs
+            // Merge Local Cache and Server Data to prevent UI duplicates/stale data pops
             const weightLocalKey = `fitisamust_weight_logs_${member.id}`;
-            let activeWeightLogs = data.weight_logs || [];
-            if (activeWeightLogs.length > 0) {
-                try { localStorage.setItem(weightLocalKey, JSON.stringify(activeWeightLogs)); } catch(e) {}
-            } else {
-                try {
-                    const cachedW = JSON.parse(localStorage.getItem(weightLocalKey) || '[]');
-                    if (cachedW.length > 0) activeWeightLogs = cachedW;
-                } catch(e) {}
-            }
+            let serverWeightLogs = data.weight_logs || [];
+            let activeWeightLogs = [...serverWeightLogs];
+            
+            try {
+                let cachedW = JSON.parse(localStorage.getItem(weightLocalKey) || '[]');
+                
+                // If local cache has temporary timestamp IDs (just added), they take precedence for that specific day
+                cachedW.forEach(localLog => {
+                    const serverIndex = activeWeightLogs.findIndex(s => s.log_date === localLog.log_date);
+                    if (serverIndex === -1) {
+                        activeWeightLogs.push(localLog);
+                    } else if (localLog.id > 1000000000000) { 
+                        // Overwrite stale server log with the optimistic local log we just entered
+                        activeWeightLogs[serverIndex] = localLog;
+                    }
+                });
+                
+                // Sort descending by date
+                activeWeightLogs.sort((a, b) => new Date(b.log_date) - new Date(a.log_date));
+                
+                // Re-save merged deduplicated list to cache
+                if (activeWeightLogs.length > 0) {
+                    localStorage.setItem(weightLocalKey, JSON.stringify(activeWeightLogs));
+                }
+            } catch(e) {}
 
             if (activeWeightLogs && activeWeightLogs.length > 0) {
                 window.currentWeightLogs = activeWeightLogs;
