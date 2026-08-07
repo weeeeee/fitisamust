@@ -1329,4 +1329,56 @@ async function requestGeminiNutritionEstimate(foodQuery) {
 
 window.requestGeminiNutritionEstimate = requestGeminiNutritionEstimate;
 
+async function syncGoogleFit() {
+    const btn = document.getElementById('btn-sync-google-fit');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Syncing...';
+    }
 
+    const member = JSON.parse(localStorage.getItem('fitisamust_member') || '{}');
+    const memberId = member.id || 3;
+
+    try {
+        const pullRes = await fetch(getApiUrl('/api/integrations/google-fit/pull'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ memberId })
+        });
+        
+        let pullData = {};
+        try {
+            pullData = await pullRes.json();
+        } catch(e) {}
+
+        if (pullRes.ok && pullData && pullData.weight) {
+            // Save the weight to the database
+            const response = await fetch(getApiUrl('/api/integrations/sync-weight'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    memberId: memberId,
+                    weight: pullData.weight,
+                    provider: 'Google Fit / Health Connect'
+                })
+            });
+            
+            if (response.ok) {
+                alert(`✅ Synced with Google Fit!\nLogged Scale Weight: ${pullData.weight} lbs`);
+                if (window.triggerDashboardReload) window.triggerDashboardReload();
+            } else {
+                alert('Failed to save synced weight.');
+            }
+        } else {
+            alert('Failed to pull weight from Google Fit. Please ensure your account is connected and data is available.');
+        }
+    } catch (err) {
+        alert('Cloud sync failed: ' + err.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-brands fa-google"></i> Sync Google Fit';
+        }
+    }
+}
+window.syncGoogleFit = syncGoogleFit;
