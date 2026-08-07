@@ -95,7 +95,7 @@ a:hover {
     font-weight: 900;
     font-style: italic;
     letter-spacing: -1px;
-    background: var(--accent-gradient);
+    background: linear-gradient(to bottom, #ffffff 30%, var(--accent-light) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     text-transform: uppercase;
