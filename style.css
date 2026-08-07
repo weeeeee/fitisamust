@@ -77,16 +77,15 @@ a:hover {
 }
 
 .logo {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 2.2rem;
-    font-weight: 900;
-    letter-spacing: -1px;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-transform: uppercase;
+    display: flex;
+    align-items: center;
     text-decoration: none;
-    line-height: 1;
+}
+
+.logo-img {
+    height: 45px;
+    width: auto;
+    display: block;
 }
 
 .nav-links {
