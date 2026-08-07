@@ -738,7 +738,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const key = `fitisamust_food_logs_${member.id}_${todayStr}`;
                 let logs = JSON.parse(localStorage.getItem(key) || '[]');
                 if (id) {
-                    logs = logs.map(item => item.id == foodObj.id ? { ...item, ...foodObj } : item);
+                    const existingIndex = logs.findIndex(item => item.id == foodObj.id);
+                    if (existingIndex > -1) {
+                        logs[existingIndex] = { ...logs[existingIndex], ...foodObj };
+                    } else {
+                        logs.push(foodObj);
+                    }
                 } else {
                     logs.push(foodObj);
                 }
@@ -1069,8 +1074,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Add local cached logs ONLY if they are not already represented by server logs
             (localCachedLogs || []).forEach(localItem => {
-                // Skip if it's a real DB ID that the server already provided
-                if (localItem.id < timeStampThreshold && logMap.has(String(localItem.id))) {
+                // If it's a real DB ID, the local cache contains the most recent user edit.
+                // Overwrite the server log with the local log to prevent old data from flashing due to race conditions.
+                if (localItem.id < timeStampThreshold) {
+                    logMap.set(String(localItem.id), localItem);
                     return;
                 }
                 
