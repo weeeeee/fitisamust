@@ -102,6 +102,19 @@ a:hover {
     line-height: 1;
 }
 
+.logo-text-outline {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: -1px;
+    color: transparent;
+    -webkit-text-stroke: 2px #000;
+    text-shadow: 0 0 15px var(--accent-light), 0 0 5px var(--accent-light);
+    text-transform: uppercase;
+    line-height: 1;
+}
+
 .nav-links {
     list-style: none;
     display: flex;
