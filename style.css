@@ -115,6 +115,38 @@ a:hover {
     line-height: 1;
 }
 
+.glow-underline {
+    position: relative;
+    display: inline-block;
+}
+.glow-underline::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0px;
+    width: 100%;
+    height: 4px;
+    background: #ffffff;
+    box-shadow: 0 0 8px #ffffff, 0 0 15px var(--accent-light);
+    border-radius: 2px;
+}
+
+.glow-overline {
+    position: relative;
+    display: inline-block;
+}
+.glow-overline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 100%;
+    height: 4px;
+    background: #ffffff;
+    box-shadow: 0 0 8px #ffffff, 0 0 15px var(--accent-light);
+    border-radius: 2px;
+}
+
 .nav-links {
     list-style: none;
     display: flex;
