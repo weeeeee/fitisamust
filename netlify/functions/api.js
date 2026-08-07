@@ -223,6 +223,12 @@ try {
 }
 
 try {
+    db.exec(`ALTER TABLE members ADD COLUMN is_moderator BOOLEAN DEFAULT 0`);
+} catch (e) {
+    // Ignore
+}
+
+try {
     db.exec(`ALTER TABLE members ADD COLUMN forum_username TEXT`);
     db.exec(`ALTER TABLE members ADD COLUMN forum_password TEXT`);
 } catch (e) {
@@ -1049,7 +1055,7 @@ app.post('/api/forum/verify-access', (req, res) => {
     }
 
     try {
-        const member = db.prepare('SELECT id, name, email, forum_username, forum_password FROM members WHERE id = ?').get(memberId);
+        const member = db.prepare('SELECT id, name, email, forum_username, forum_password, is_moderator FROM members WHERE id = ?').get(memberId);
         if (!member) return res.status(401).json({ error: 'Member account not found.' });
         if (!member.forum_username || !member.forum_password) {
             return res.status(403).json({ error: 'Forum credentials not configured. Please set them in Member Settings first.' });
@@ -1069,7 +1075,8 @@ app.post('/api/forum/verify-access', (req, res) => {
             member: {
                 id: member.id,
                 name: member.name,
-                forum_username: member.forum_username
+                forum_username: member.forum_username,
+                is_moderator: !!member.is_moderator
             }
         });
     } catch (err) {
@@ -1174,6 +1181,46 @@ app.post('/api/forum/threads/:id/replies', (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: 'Failed to post reply.' });
+    }
+});
+
+// Delete Thread (Moderator only)
+app.delete('/api/forum/threads/:id', (req, res) => {
+    const threadId = req.params.id;
+    const { memberId } = req.body;
+    if (!memberId) return res.status(400).json({ error: 'Member ID required.' });
+    
+    try {
+        const member = db.prepare('SELECT is_moderator FROM members WHERE id = ?').get(memberId);
+        if (!member || !member.is_moderator) {
+            return res.status(403).json({ error: 'Permission denied. Moderators only.' });
+        }
+        
+        db.prepare('DELETE FROM forum_threads WHERE id = ?').run(threadId);
+        res.json({ message: 'Thread deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to delete thread.' });
+    }
+});
+
+// Delete Reply (Moderator only)
+app.delete('/api/forum/replies/:id', (req, res) => {
+    const replyId = req.params.id;
+    const { memberId } = req.body;
+    if (!memberId) return res.status(400).json({ error: 'Member ID required.' });
+    
+    try {
+        const member = db.prepare('SELECT is_moderator FROM members WHERE id = ?').get(memberId);
+        if (!member || !member.is_moderator) {
+            return res.status(403).json({ error: 'Permission denied. Moderators only.' });
+        }
+        
+        db.prepare('DELETE FROM forum_replies WHERE id = ?').run(replyId);
+        res.json({ message: 'Reply deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to delete reply.' });
     }
 });
 

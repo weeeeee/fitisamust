@@ -66,7 +66,8 @@ async function handleForumAuthentication(e) {
         if (res.ok && data.success) {
             sessionStorage.setItem('fitisamust_forum_auth', JSON.stringify({
                 authenticated: true,
-                forum_username: data.member.forum_username
+                forum_username: data.member.forum_username,
+                is_moderator: data.member.is_moderator
             }));
             document.getElementById('forum-gate-modal').style.display = 'none';
             if (errorMsg) errorMsg.style.display = 'none';
@@ -132,18 +133,22 @@ async function loadThreads(category = 'All') {
             return;
         }
 
+        const forumAuth = JSON.parse(sessionStorage.getItem('fitisamust_forum_auth')) || {};
+        const isMod = forumAuth.is_moderator;
+
         container.innerHTML = threads.map(t => {
             const badgeClass = t.category === 'Support' ? 'badge-support' : 'badge-general';
             const icon = t.category === 'Support' ? 'fa-headset' : 'fa-comments';
             const formattedDate = new Date(t.created_at).toLocaleDateString(undefined, {
                 month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
             });
+            const deleteBtn = isMod ? `<button onclick="event.stopPropagation(); deleteThread(${t.id})" style="background:none;border:none;color:#ef4444;cursor:pointer;padding:0 5px;" title="Delete Thread"><i class="fa-solid fa-trash"></i></button>` : '';
 
             return `
                 <div class="thread-card" onclick="openThreadDetail(${t.id})">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                         <span class="${badgeClass}"><i class="fa-solid ${icon}"></i> ${t.category}</span>
-                        <span style="font-size: 0.8rem; color: #64748b;"><i class="fa-regular fa-clock"></i> ${formattedDate}</span>
+                        <span style="font-size: 0.8rem; color: #64748b;"><i class="fa-regular fa-clock"></i> ${formattedDate} ${deleteBtn}</span>
                     </div>
                     <h3 style="margin: 0 0 10px 0; color: #fff; font-size: 1.15rem; font-weight: 700; line-height: 1.4;">${escapeHtml(t.title)}</h3>
                     <p style="color: #cbd5e1; font-size: 0.9rem; margin: 0 0 15px 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
@@ -245,10 +250,14 @@ async function openThreadDetail(threadId) {
             month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
         });
 
+        const forumAuth = JSON.parse(sessionStorage.getItem('fitisamust_forum_auth')) || {};
+        const isMod = forumAuth.is_moderator;
+        const threadDeleteBtn = isMod ? `<button onclick="deleteThread(${t.id})" style="background:none;border:none;color:#ef4444;cursor:pointer;margin-left:10px;" title="Delete Thread"><i class="fa-solid fa-trash"></i> Delete Thread</button>` : '';
+
         headerDiv.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <span class="${badgeClass}">${t.category}</span>
-                <span style="font-size: 0.8rem; color: #64748b;"><i class="fa-regular fa-clock"></i> ${formattedDate}</span>
+                <span style="font-size: 0.8rem; color: #64748b;"><i class="fa-regular fa-clock"></i> ${formattedDate} ${threadDeleteBtn}</span>
             </div>
             <h2 style="margin: 0 0 10px 0; color: #fff; font-size: 1.3rem;">${escapeHtml(t.title)}</h2>
             <div style="font-size: 0.85rem; color: #38bdf8; margin-bottom: 15px;">
@@ -269,11 +278,12 @@ async function openThreadDetail(threadId) {
                 const rDate = new Date(r.created_at).toLocaleDateString(undefined, {
                     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                 });
+                const replyDeleteBtn = isMod ? `<button onclick="deleteReply(${r.id})" style="background:none;border:none;color:#ef4444;cursor:pointer;padding:0 5px;font-size:0.8rem;" title="Delete Reply"><i class="fa-solid fa-trash"></i></button>` : '';
                 return `
                     <div class="reply-box">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                             <span style="font-weight: 600; color: #38bdf8; font-size: 0.85rem;"><i class="fa-solid fa-user-circle"></i> @${escapeHtml(r.author_username)}</span>
-                            <span style="font-size: 0.75rem; color: #64748b;">${rDate}</span>
+                            <span style="font-size: 0.75rem; color: #64748b;">${rDate} ${replyDeleteBtn}</span>
                         </div>
                         <div style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(r.content)}</div>
                     </div>
@@ -334,4 +344,49 @@ function escapeHtml(str) {
             "'": '&#039;'
         }[m];
     });
+}
+
+async function deleteThread(threadId) {
+    if (!confirm('Are you sure you want to delete this thread? This action cannot be undone.')) return;
+    
+    try {
+        const res = await fetch(getApiUrl(`/api/forum/threads/${threadId}`), {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ memberId: activeMember.id })
+        });
+        
+        if (res.ok) {
+            closeThreadDetailModal();
+            loadThreads(currentCategory);
+        } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to delete thread.');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Error deleting thread.');
+    }
+}
+
+async function deleteReply(replyId) {
+    if (!confirm('Are you sure you want to delete this reply?')) return;
+    
+    try {
+        const res = await fetch(getApiUrl(`/api/forum/replies/${replyId}`), {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ memberId: activeMember.id })
+        });
+        
+        if (res.ok) {
+            openThreadDetail(currentThreadId);
+        } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to delete reply.');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Error deleting reply.');
+    }
 }
