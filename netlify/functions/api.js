@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const serverless = require('serverless-http');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_mock'); // Fallback to mock key if not set
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -326,35 +327,72 @@ db.exec(`
     );
 `);
 
-// Purchase Endpoint
-app.post('/api/purchase', async (req, res) => {
-    const { name, email, cardNumber } = req.body;
-    
-    if (!name || !email || !cardNumber) {
-        return res.status(400).json({ error: 'Name, email, and card details are required.' });
-    }
-
-    console.log(`Processing simulated $29.99 payment for ${email}`);
-    
-    const tempPassword = crypto.randomBytes(4).toString('hex');
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = bcrypt.hashSync(tempPassword, salt);
-
+// Stripe Checkout Endpoint
+app.post('/api/create-checkout-session', async (req, res) => {
     try {
-        const stmt = db.prepare(`INSERT INTO members (name, email, password, requires_password_change) VALUES (?, ?, ?, ?)`);
-        const info = stmt.run(name, email, hashedPassword, 1);
-        console.log(`Successfully added member with ID ${info.lastInsertRowid}`);
-        
-        await sendInitialTempPasswordEmail(name, email, tempPassword);
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        product_data: {
+                            name: 'FIT IS A MUST - The Ultimate Guide',
+                            description: 'eBook and Lifetime Member Access',
+                        },
+                        unit_amount: 2999, // $29.99
+                    },
+                    quantity: 1,
+                },
+            ],
+            mode: 'payment',
+            success_url: `${req.headers.origin}/success.html`,
+            cancel_url: `${req.headers.origin}/cancel.html`,
+        });
 
-        res.status(201).json({ message: 'Purchase successful! Please check your email for your temporary password.', memberId: info.lastInsertRowid });
+        res.json({ id: session.id, url: session.url });
     } catch (err) {
-        if (err.message.includes('UNIQUE constraint failed')) {
-            return res.status(409).json({ error: 'This email has already purchased the book.' });
-        }
-        console.error(err.message);
-        return res.status(500).json({ error: 'Failed to complete purchase.' });
+        console.error('Error creating checkout session:', err);
+        res.status(500).json({ error: 'Failed to create checkout session.' });
     }
+});
+
+// Stripe Webhook Endpoint
+app.post('/api/webhook', async (req, res) => {
+    const event = req.body;
+    
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        
+        const email = session.customer_details?.email;
+        const name = session.customer_details?.name || 'Valued Member';
+        
+        if (email) {
+            console.log(`Processing successful payment for ${email}`);
+            
+            const tempPassword = crypto.randomBytes(4).toString('hex');
+            const salt = bcrypt.genSaltSync(10);
+            const hashedPassword = bcrypt.hashSync(tempPassword, salt);
+            
+            try {
+                // Check if user already exists
+                const existing = db.prepare('SELECT id FROM members WHERE email = ?').get(email);
+                if (!existing) {
+                    const stmt = db.prepare(`INSERT INTO members (name, email, password, requires_password_change) VALUES (?, ?, ?, ?)`);
+                    const info = stmt.run(name, email, hashedPassword, 1);
+                    console.log(`Successfully added member with ID ${info.lastInsertRowid}`);
+                    
+                    await sendInitialTempPasswordEmail(name, email, tempPassword);
+                } else {
+                    console.log(`User ${email} already exists, skipping member creation.`);
+                }
+            } catch (err) {
+                console.error('Database error in webhook:', err.message);
+            }
+        }
+    }
+    
+    res.json({ received: true });
 });
 
 // Login Endpoint

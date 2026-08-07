@@ -197,37 +197,6 @@
         </div>
     </footer>
 
-    <!-- Purchase Modal -->
-    <div id="purchase-modal" class="modal">
-        <div class="modal-content login-box">
-            <span class="close-btn">&times;</span>
-            <h2>Complete Your Purchase</h2>
-            <p class="section-subtitle" style="margin-bottom: 20px;">Get full access to The Ultimate Guide for just $29.99.</p>
-            
-            <form id="purchase-form" class="login-form">
-                <div class="input-group">
-                    <label for="purchase-name">Full Name</label>
-                    <input type="text" id="purchase-name" required placeholder="John Doe" />
-                </div>
-                <div class="input-group">
-                    <label for="purchase-email">Email Address</label>
-                    <input type="email" id="purchase-email" required placeholder="john@example.com" />
-                </div>
-                <div class="input-group">
-                    <label for="purchase-card">Card Number (Simulation)</label>
-                    <input type="text" id="purchase-card" required placeholder="XXXX-XXXX-XXXX-XXXX" />
-                </div>
-                <p style="text-align: center; margin-bottom: 20px; font-size: 0.85rem; color: var(--text-muted);">
-                    <i class="fa-solid fa-lock" style="color: var(--accent-light);"></i> Your payment information is 256-bit encrypted and securely processed.
-                </p>
-                
-                <div id="purchase-error" style="color: #ef4444; margin-bottom: 15px; display: none; font-size: 0.9rem;"></div>
-                <div id="purchase-success" style="color: #10b981; margin-bottom: 15px; display: none; font-size: 0.9rem;"></div>
-                
-                <button type="submit" class="btn btn-primary w-100" id="submit-purchase-btn">Buy Now for $29.99</button>
-            </form>
-        </div>
-    </div>
 
     <!-- Forgot Password Modal -->
     <div id="forgot-password-modal" class="modal">
@@ -302,76 +271,42 @@
             }
         }
 
-        // Modal Logic
-        const modal = document.getElementById("purchase-modal");
+        // Stripe Checkout Logic
         const buyBtn = document.getElementById("buy-btn");
-        const closeBtn = document.querySelector(".close-btn");
 
-        buyBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            modal.style.display = "flex";
-        });
-
-        closeBtn.addEventListener("click", () => {
-            modal.style.display = "none";
-        });
-
-        window.addEventListener("click", (e) => {
-            if (e.target === modal) {
-                modal.style.display = "none";
-            }
-        });
-
-        // Form Submission Logic
-        const purchaseForm = document.getElementById("purchase-form");
-        const submitBtn = document.getElementById("submit-purchase-btn");
-        const errorMsg = document.getElementById("purchase-error");
-        const successMsg = document.getElementById("purchase-success");
-
-        purchaseForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById("purchase-name").value;
-            const email = document.getElementById("purchase-email").value;
-            const cardNumber = document.getElementById("purchase-card").value;
-            
-            errorMsg.style.display = "none";
-            successMsg.style.display = "none";
-            submitBtn.innerText = "Processing...";
-            submitBtn.disabled = true;
-
-            try {
-                const response = await fetch(getApiUrl('/api/purchase'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, cardNumber })
-                });
+        if (buyBtn) {
+            buyBtn.addEventListener("click", async (e) => {
+                e.preventDefault();
                 
-                const data = await safeJsonParse(response);
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Something went wrong');
+                const originalText = buyBtn.innerHTML;
+                buyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Redirecting...';
+                buyBtn.style.pointerEvents = 'none';
+
+                try {
+                    const response = await fetch(getApiUrl('/api/create-checkout-session'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    const data = await safeJsonParse(response);
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to initialize checkout');
+                    }
+                    
+                    // Redirect to Stripe Checkout
+                    if (data.url) {
+                        window.location.href = data.url;
+                    } else {
+                        throw new Error('Checkout URL missing from response');
+                    }
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                    buyBtn.innerHTML = originalText;
+                    buyBtn.style.pointerEvents = 'auto';
                 }
-                
-                successMsg.innerText = "Purchase successful! Welcome, " + name + ".";
-                successMsg.style.display = "block";
-                purchaseForm.reset();
-                
-                // Hide modal after a delay
-                setTimeout(() => {
-                    modal.style.display = "none";
-                    successMsg.style.display = "none";
-                    submitBtn.innerText = "Buy Now for $29.99";
-                    submitBtn.disabled = false;
-                }, 3000);
-                
-            } catch (err) {
-                errorMsg.innerText = err.message;
-                errorMsg.style.display = "block";
-                submitBtn.innerText = "Buy Now for $29.99";
-                submitBtn.disabled = false;
-            }
-        });
+            });
+        }
 
         // Forgot Password Logic
         const forgotModal = document.getElementById("forgot-password-modal");

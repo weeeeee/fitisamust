@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fitisamust | Payment Successful</title>
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        .status-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .status-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+        }
+        .status-icon {
+            font-size: 4rem;
+            color: #10b981;
+            margin-bottom: 20px;
+        }
+        .status-title {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        .status-text {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-container">
+        <div class="status-box">
+            <i class="fa-solid fa-circle-check status-icon"></i>
+            <h1 class="status-title">Payment Successful!</h1>
+            <p class="status-text">Thank you for purchasing The Ultimate Guide. Your payment has been securely processed.</p>
+            <p class="status-text" style="color: var(--accent-light); font-weight: bold;">
+                Please check your email shortly. We've sent your temporary member password and instructions on how to log in.
+            </p>
+            <a href="index.html" class="btn btn-primary">Return to Home</a>
+        </div>
+    </div>
+</body>
+</html>
