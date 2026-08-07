@@ -67,7 +67,9 @@ window.deleteFood = async function(id) {
     if (!confirm('Are you sure you want to delete this food item?')) return;
     if (window.currentMemberId) {
         try {
-            const key = `fitisamust_food_logs_${window.currentMemberId}_` + (new Date().toISOString().split('T')[0]);
+            const d = new Date();
+            const todayStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            const key = `fitisamust_food_logs_${window.currentMemberId}_${todayStr}`;
             let logs = JSON.parse(localStorage.getItem(key) || '[]');
             logs = logs.filter(item => item.id != id);
             localStorage.setItem(key, JSON.stringify(logs));
