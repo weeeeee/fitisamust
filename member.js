@@ -87,6 +87,15 @@ window.deleteFood = async function(id) {
 window.editFood = function(id) {
     const log = window.currentFoodLogs.find(f => f.id === id);
     if (!log) return;
+    
+    // Store the base macros so quantity scaling works from the currently logged totals
+    window.baseMacros = {
+        cal: log.calories || 0,
+        pro: log.protein || 0,
+        carb: log.carbs || 0,
+        fat: log.fat || 0
+    };
+
     document.getElementById('edit-food-id').value = log.id;
     document.getElementById('food-meal').value = log.meal_type || 'Breakfast';
     document.getElementById('food-name').value = log.food_name;
@@ -94,11 +103,12 @@ window.editFood = function(id) {
     document.getElementById('food-pro').value = log.protein;
     document.getElementById('food-carb').value = log.carbs;
     document.getElementById('food-fat').value = log.fat;
-    document.getElementById('food-qty').value = ''; 
+    document.getElementById('food-qty').value = 1; // Default to 1 serving when editing
     document.getElementById('food-submit-btn').innerText = 'Update Food';
     document.getElementById('cancel-edit-btn').style.display = 'inline-block';
     document.getElementById('food-form').scrollIntoView({ behavior: 'smooth' });
 };
+
 
 window.cancelEdit = function() {
     document.getElementById('edit-food-id').value = '';
@@ -568,6 +578,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const foodMealSelectInput = document.getElementById('food-meal');
 
     function updateMacros() {
+        const qty = parseFloat(foodQtyInput.value) || 1;
+
+        if (window.baseMacros) {
+            document.getElementById('food-cal').value = Math.round(window.baseMacros.cal * qty);
+            document.getElementById('food-pro').value = Math.round(window.baseMacros.pro * qty);
+            document.getElementById('food-carb').value = Math.round(window.baseMacros.carb * qty);
+            document.getElementById('food-fat').value = Math.round(window.baseMacros.fat * qty);
+            return;
+        }
+
         let val = foodNameInput.value.trim();
         if (val.startsWith('🕒 ')) val = val.substring(2).trim();
 
@@ -575,7 +595,6 @@ document.addEventListener('DOMContentLoaded', () => {
                              prebuiltFoods.find(f => f.name.toLowerCase() === val.toLowerCase());
 
         if (selectedFood) {
-            const qty = parseFloat(foodQtyInput.value) || 1;
             document.getElementById('food-cal').value = Math.round(selectedFood.cal * qty);
             document.getElementById('food-pro').value = Math.round(selectedFood.pro * qty);
             document.getElementById('food-carb').value = Math.round(selectedFood.carb * qty);
@@ -588,7 +607,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (foodNameInput && foodQtyInput) {
-        foodNameInput.addEventListener('input', updateMacros);
+        foodNameInput.addEventListener('input', (e) => {
+            window.baseMacros = null; // Clear base macros if they start manually typing a new food
+            updateMacros();
+        });
         foodNameInput.addEventListener('change', updateMacros);
         foodQtyInput.addEventListener('input', updateMacros);
     }
@@ -601,6 +623,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (foodObj && foodNameInput) {
                 foodNameInput.value = foodObj.name;
                 foodQtyInput.value = 1;
+
+                window.baseMacros = {
+                    cal: foodObj.cal || 0,
+                    pro: foodObj.pro || 0,
+                    carb: foodObj.carb || 0,
+                    fat: foodObj.fat || 0
+                };
+
                 document.getElementById('food-cal').value = foodObj.cal;
                 document.getElementById('food-pro').value = foodObj.pro;
                 document.getElementById('food-carb').value = foodObj.carb;
@@ -1276,6 +1306,14 @@ document.addEventListener('DOMContentLoaded', () => {
             itemDiv.addEventListener('click', () => {
                 document.getElementById('food-name').value = food.name;
                 document.getElementById('food-qty').value = 1;
+                
+                window.baseMacros = {
+                    cal: food.cal || 0,
+                    pro: food.pro || 0,
+                    carb: food.carb || 0,
+                    fat: food.fat || 0
+                };
+
                 document.getElementById('food-cal').value = food.cal;
                 document.getElementById('food-pro').value = food.pro;
                 document.getElementById('food-carb').value = food.carb;
@@ -1325,6 +1363,14 @@ async function requestGeminiNutritionEstimate(foodQuery) {
         if (response.ok && data.success) {
             document.getElementById('food-name').value = data.name;
             document.getElementById('food-qty').value = 1;
+            
+            window.baseMacros = {
+                cal: data.calories || 0,
+                pro: data.protein || 0,
+                carb: data.carbs || 0,
+                fat: data.fat || 0
+            };
+
             document.getElementById('food-cal').value = data.calories;
             document.getElementById('food-pro').value = data.protein;
             document.getElementById('food-carb').value = data.carbs;
